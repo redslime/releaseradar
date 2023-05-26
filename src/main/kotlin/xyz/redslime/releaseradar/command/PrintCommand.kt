@@ -1,0 +1,60 @@
+package xyz.redslime.releaseradar.command
+
+import com.adamratzman.spotify.models.Artist
+import dev.kord.core.behavior.channel.MessageChannelBehavior
+import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
+import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.entity.interaction.ChatInputCommandInteraction
+import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
+import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.request.RestRequestException
+import xyz.redslime.releaseradar.*
+
+/**
+ * @author redslime
+ * @version 2023-05-21
+ */
+class PrintCommand: ArtistCommand("print", "Prints the lastest release of the specified artist to the specified channel to test permissions", singleOnly = true, perm = PermissionLevel.CONFIG_CHANNEL) {
+
+    override fun addParams(builder: ChatInputCreateBuilder) {
+        addChannelInput(builder, "The channel to post the latest release of the specified artist to")
+    }
+
+    override suspend fun handleArtist(
+        artist: Artist,
+        response: DeferredMessageInteractionResponseBehavior,
+        interaction: ChatInputCommandInteraction
+    ) {
+        val channel = getChannelInput(interaction)!!
+        val radarId = db.getRadarId(channel)
+
+        spotify.getLatestRelease(artist.id)?.also { sa ->
+            sa.toFullAlbum()?.also { album ->
+                try {
+                    postAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                    response.respond {
+                        embed {
+                            success()
+                            description = "Posted latest release of ${artist.name} to ${channel.mention}"
+                        }
+                    }
+                } catch (ex: RestRequestException) {
+                    if (ex.status.code == 403)
+                        respondErrorEmbed(response, "No permission to post messages in ${channel.mention} :(")
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    respondErrorEmbed(response, "Something went wrong, please double check permissions etc")
+                }
+            }
+        }
+    }
+
+    override suspend fun handleArtists(
+        artists: List<Artist>,
+        response: DeferredMessageInteractionResponseBehavior,
+        unresolved: List<String>,
+        interaction: ChatInputCommandInteraction
+    ) {
+
+    }
+}
