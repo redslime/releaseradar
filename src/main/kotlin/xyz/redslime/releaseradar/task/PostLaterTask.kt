@@ -48,7 +48,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
     private suspend fun runActual(client: Kord) {
         // find the timezone where its midnight
         Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
-            val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }
+            val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
                 logger.info("Found ${albumIds.size} albums to post now")
