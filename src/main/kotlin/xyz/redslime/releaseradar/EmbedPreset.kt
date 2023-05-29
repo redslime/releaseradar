@@ -53,7 +53,7 @@ suspend fun postAlbum(album: Album, channel: MessageChannelBehavior, radarId: In
 }
 
 suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
-    timezoneCallbacks[user.id.asLong()] = block
+    timezoneCallbacks.add(Pair(user.id.asLong(), block))
     user.getDmChannelOrNull()?.createMessage {
         embed {
             warning()

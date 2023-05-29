@@ -20,7 +20,7 @@ import kotlin.coroutines.coroutineContext
 class InteractionListener {
 
     companion object {
-        val timezoneCallbacks = mutableMapOf<Long, Timezone.() -> Unit>()
+        val timezoneCallbacks = mutableListOf<Pair<Long, Timezone.() -> Unit>>()
     }
 
     fun register(client: Kord) {
@@ -46,7 +46,8 @@ class InteractionListener {
 
                 if(key == "timezone-prompt") {
                     interaction.deferEphemeralResponse().respond {
-                        timezoneCallbacks.remove(userId)?.invoke(timezone)
+                        timezoneCallbacks.filter { it.first == userId }.forEach { it.second.invoke(timezone) }
+                        timezoneCallbacks.removeIf { it.first == userId }
                         db.setUserTimezone(userId, timezone)
 
                         embed {
