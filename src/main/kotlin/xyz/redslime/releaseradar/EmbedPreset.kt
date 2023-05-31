@@ -106,7 +106,7 @@ fun buildAlbum(album: Album?, builder: EmbedBuilder) {
         builder.description += "\n\uD83C\uDFB6 [Spotify Link](${album.externalUrls.spotify})"
 
         builder.footer {
-            text = "New: Get a DM when the track is out in your timezone"
+            text = "Hit ⏰ for a DM when it's out in your timezone"
         }
     } else {
         builder.color = EmbedColor.RED.color
