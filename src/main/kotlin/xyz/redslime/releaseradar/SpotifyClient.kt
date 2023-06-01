@@ -7,6 +7,7 @@ import com.adamratzman.spotify.models.Artist
 import com.adamratzman.spotify.models.SimpleAlbum
 import com.adamratzman.spotify.models.SimpleArtist
 import com.adamratzman.spotify.spotifyAppApi
+import com.adamratzman.spotify.utils.Market
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
@@ -52,7 +53,8 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
             job = coroutineContext.job
             spotify.artists.getArtistAlbums(
                 artistId, offset = offset * 50,
-                include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single)
+                include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
+                market = Market.WS
             )
         }
         logger.info("$artistId: ${albums.size}")

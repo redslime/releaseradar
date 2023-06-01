@@ -1,6 +1,7 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.*
+import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
@@ -41,7 +42,7 @@ fun SimpleAlbum.getReleaseDateTime(): LocalDateTime {
 }
 
 suspend fun SimpleAlbum.toAlbum(): Album {
-    return toFullAlbum(availableMarkets.first())!!
+    return toFullAlbum(Market.WS)!!
 }
 
 fun SimpleAlbum.isReleasedAfter(date: LocalDate): Boolean {
