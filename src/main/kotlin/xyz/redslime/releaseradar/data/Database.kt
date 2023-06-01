@@ -133,10 +133,11 @@ class Database(private val cache: Cache, private val host: String, private val u
 
         try {
             success = rec.insert()
+            rec.refresh()
         } catch (ex: Exception) {
             success = 0
         }
-        rec.refresh()
+
         cache.addArtistRadarRecord(rec)
 
         return success == 1
