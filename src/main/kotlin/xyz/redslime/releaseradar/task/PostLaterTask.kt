@@ -100,8 +100,8 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
     }
 
-    fun add(rec: PostLaterRecord) {
-        add(Entry(rec.contentId!!, rec.channelId!!, Timezone.valueOf(rec.timezone!!), rec.userChannel!!))
+    private fun add(rec: PostLaterRecord) {
+        entries.add(Entry(rec.contentId!!, rec.channelId!!, Timezone.valueOf(rec.timezone!!), rec.userChannel!!))
     }
 
     private fun add(entry: Entry) {
