@@ -13,7 +13,6 @@ import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.POST_LATER
 import xyz.redslime.releaseradar.util.Timezone
-import xyz.redslime.releaseradar.util.getMillisUntilTopOfTheHour
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.*
@@ -22,7 +21,7 @@ import java.util.*
  * @author redslime
  * @version 2023-05-26
  */
-class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Duration.ofMinutes(5)) {
+class PostLaterTask: Task(Duration.ZERO, Duration.ofMinutes(5)) {
 
     data class Entry(val albumId: String, val channelId: Long, val timezone: Timezone, val dm: Boolean)
 
@@ -70,8 +69,10 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
             userDms.forEach { (channelId, list) ->
                 client.getUser(Snowflake(channelId))?.getDmChannelOrNull()?.let {
-                    it.createMessage {
-                        content = list.joinToString("\n")
+                    list.chunked(5).forEach { tracks ->
+                        it.createMessage {
+                            content = tracks.joinToString("\n")
+                        }
                     }
                 }
             }
