@@ -48,6 +48,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
     private suspend fun runActual(client: Kord) {
         // find the timezone where its midnight
         Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
+            val userDms = mutableMapOf<Long, MutableList<String>>()
             val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
@@ -56,15 +57,21 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             spotify.getAlbumsBatch(albumIds).forEach { album ->
                 entries.filter { it.timezone == timezone && it.albumId == album.id }.forEach { entry ->
                     if(entry.dm) {
-                        client.getUser(Snowflake(entry.channelId))?.getDmChannelOrNull()?.let {
-                            it.createMessage {
-                                content = album.getSmartLink()
-                            }
+                        album.getSmartLink()?.let { link ->
+                            userDms.getOrPut(entry.channelId) { mutableListOf() }.add(link)
                         }
                     } else {
                         client.getChannel(Snowflake(entry.channelId))?.let { channel ->
                             postAlbum(album, channel as MessageChannelBehavior, db.getRadarId(channel))
                         }
+                    }
+                }
+            }
+
+            userDms.forEach { (channelId, list) ->
+                client.getUser(Snowflake(channelId))?.getDmChannelOrNull()?.let {
+                    it.createMessage {
+                        content = list.joinToString("\n")
                     }
                 }
             }
