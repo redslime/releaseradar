@@ -2,12 +2,10 @@ package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.SpotifyAppApi
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
-import com.adamratzman.spotify.models.Album
-import com.adamratzman.spotify.models.Artist
-import com.adamratzman.spotify.models.SimpleAlbum
-import com.adamratzman.spotify.models.SimpleArtist
+import com.adamratzman.spotify.models.*
 import com.adamratzman.spotify.spotifyAppApi
 import com.adamratzman.spotify.utils.Market
+import io.ktor.client.network.sockets.*
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
@@ -49,14 +47,22 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
 
     suspend fun getAllAlbums(artistId: String, offset: Int = 0): ArrayList<SimpleAlbum> {
         job?.join()
-        val albums = withContext(coroutine.coroutineContext) {
-            job = coroutineContext.job
-            spotify.artists.getArtistAlbums(
-                artistId, offset = offset * 50,
-                include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
-                market = Market.WS
-            )
+        val albums: PagingObject<SimpleAlbum>
+
+        try {
+            albums = withContext(coroutine.coroutineContext) {
+                job = coroutineContext.job
+                spotify.artists.getArtistAlbums(
+                    artistId, offset = offset * 50,
+                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
+                    market = Market.WS
+                )
+            }
+        } catch(ex: ConnectTimeoutException) {
+            logger.error("Connection timed out trying to get albums for $artistId, trying again")
+            return getAllAlbums(artistId, offset)
         }
+
         logger.info("$artistId: ${albums.size}")
 
         if (offset == 0 && albums.total == albums.getAllItemsNotNull().size) // spotify api be weird
