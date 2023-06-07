@@ -273,7 +273,7 @@ class Database(private val cache: Cache, private val host: String, private val u
                 val lastScan = time.toLong()
                 Duration.ofMillis(System.currentTimeMillis() - lastScan)
             }
-        } ?: Duration.ZERO
+        } ?: Duration.ofDays(1)
     }
 
     fun getUserTimezone(userId: Long): Timezone? {

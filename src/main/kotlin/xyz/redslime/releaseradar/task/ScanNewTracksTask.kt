@@ -37,10 +37,12 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
     @OptIn(ExperimentalTime::class)
     suspend fun runActual(client: Kord) {
         val lastScan = db.getDurationSinceLastUpdatedTracks()
+
         if(lastScan < Duration.ofHours(2)) {
             LOGGER.info("Last scan of new releases was too recent ($lastScan), skipping")
             return
         }
+
         db.setLastUpdatedTracks()
         DiscordClient.postLaterTask.reset()
 
