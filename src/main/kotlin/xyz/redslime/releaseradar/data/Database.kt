@@ -220,6 +220,7 @@ class Database(private val cache: Cache, private val host: String, private val u
     }
 
     fun updateLastRelease(artists: List<String>, releaseDate: LocalDateTime) {
+        cache.updateLastRelease(artists, releaseDate)
         connect().update(ARTIST)
             .set(ARTIST.LAST_RELEASE, releaseDate)
             .where(ARTIST.ID.`in`(artists))

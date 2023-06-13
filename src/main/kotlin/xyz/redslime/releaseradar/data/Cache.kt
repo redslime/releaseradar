@@ -9,6 +9,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecor
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
 import xyz.redslime.releaseradar.util.Timezone
+import java.time.LocalDateTime
 
 /**
  * @author redslime
@@ -176,5 +177,11 @@ class Cache {
         if(str != null)
             return str.split(",").map { ReactionEmoji.from(it) }.toList()
         return listOf(ReactionEmoji.Unicode("\uD83D\uDC4D"), ReactionEmoji.Unicode("\uD83D\uDC4E"), ReactionEmoji.Unicode("\u2764\uFE0F"))
+    }
+
+    fun updateLastRelease(artistIds: List<String>, releaseDate: LocalDateTime) {
+        artistIds.forEach { aid ->
+            artists.filter { it.id == aid }.forEach { it.lastRelease = releaseDate }
+        }
     }
 }
