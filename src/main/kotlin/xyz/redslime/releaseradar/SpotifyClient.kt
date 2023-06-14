@@ -54,7 +54,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
                 job = coroutineContext.job
                 spotify.artists.getArtistAlbums(
                     artistId, offset = offset * 50,
-                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
+                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single, ArtistApi.AlbumInclusionStrategy.AppearsOn),
                     market = Market.WS
                 )
             }
