@@ -184,4 +184,8 @@ class Cache {
             artists.filter { it.id == aid }.forEach { it.lastRelease = releaseDate }
         }
     }
+
+    fun getAllActiveRadars(): List<Long> {
+        return artistRadars.mapNotNull { it.radarId }.distinct().mapNotNull { getChannelId(it) }.toList()
+    }
 }

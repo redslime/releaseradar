@@ -57,6 +57,7 @@ class DiscordClient {
         SetTimezoneCommand().register(client)
         EmbedTypeCommand().register(client)
         SetReactionsCommand().register(client)
+        CollectRemindersCommand().register(client)
     }
 
     private fun registerListeners() {

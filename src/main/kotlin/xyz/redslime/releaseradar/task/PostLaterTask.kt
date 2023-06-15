@@ -26,7 +26,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
     data class Entry(val albumId: String, val channelId: Long, val timezone: Timezone, val dm: Boolean)
 
-    private val entries = mutableListOf<Entry>()
+    private val entries = mutableSetOf<Entry>()
     private val logger = LogManager.getLogger(javaClass)
 
     init {
@@ -87,7 +87,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         add(Entry(album.id, channelId, timezone, false))
     }
 
-    suspend fun add(albumId: String, user: User) {
+    suspend fun add(albumId: String, user: User): Boolean {
         val userId = user.id.asLong()
         val timezone = db.getUserTimezone(userId)
 
@@ -95,18 +95,23 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             postTimezonePrompt(user) {
                 add(Entry(albumId, userId, this, true))
             }
+            return true
         } else {
-            add(Entry(albumId, userId, timezone, true))
+            return add(Entry(albumId, userId, timezone, true))
         }
     }
 
-    private fun add(rec: PostLaterRecord) {
-        entries.add(Entry(rec.contentId!!, rec.channelId!!, Timezone.valueOf(rec.timezone!!), rec.userChannel!!))
+    private fun add(rec: PostLaterRecord): Boolean {
+        return entries.add(Entry(rec.contentId!!, rec.channelId!!, Timezone.valueOf(rec.timezone!!), rec.userChannel!!))
     }
 
-    private fun add(entry: Entry) {
-        db.addPostLater(entry)
-        entries.add(entry)
+    private fun add(entry: Entry): Boolean {
+        if(entries.add(entry)) {
+            db.addPostLater(entry)
+            return true
+        }
+
+        return false
     }
 
     fun reset() {
