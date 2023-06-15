@@ -24,6 +24,6 @@ class ScanCommand: AdminCommand("scan", "Looks for new releases globally") {
                 title = "Starting scanning for new releases..."
             }
         }
-        scanTask.runActual(interaction.kord)
+        scanTask.runActual(interaction.kord, true)
     }
 }
