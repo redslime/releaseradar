@@ -42,7 +42,13 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     }
 
     suspend fun getAlbumsAfter(artistId: String, date: LocalDateTime?): List<SimpleAlbum> {
-        return getAllAlbums(artistId).filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
+        return try {
+            val albums = getAllAlbums(artistId)
+            albums.filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
+        } catch(ex: ConnectTimeoutException) {
+            logger.error("Connection timed out trying to get albums for $artistId after $date, trying again", ex)
+            getAlbumsAfter(artistId, date)
+        }
     }
 
     suspend fun getAllAlbums(artistId: String, offset: Int = 0): ArrayList<SimpleAlbum> {
@@ -54,12 +60,15 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
                 job = coroutineContext.job
                 spotify.artists.getArtistAlbums(
                     artistId, offset = offset * 50,
-                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single, ArtistApi.AlbumInclusionStrategy.AppearsOn),
+                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
                     market = Market.WS
                 )
             }
         } catch(ex: ConnectTimeoutException) {
-            logger.error("Connection timed out trying to get albums for $artistId, trying again")
+            logger.error("Connection timed out trying to get albums for $artistId, trying again", ex)
+            return getAllAlbums(artistId, offset)
+        } catch (ex: CancellationException) {
+            logger.error("Coroutine to get albums for $artistId cancelled, trying again", ex)
             return getAllAlbums(artistId, offset)
         }
 
@@ -71,7 +80,16 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         val list = ArrayList(albums.getAllItemsNotNull())
 
         if (albums.total > 50 + (offset * 50)) {
-            list.addAll(getAllAlbums(artistId, offset + 1))
+            val more: ArrayList<SimpleAlbum>
+
+            try {
+                more = getAllAlbums(artistId, offset + 1)
+            } catch(ex: ConnectTimeoutException) {
+                logger.error("Connection timed out trying to get albums for $artistId (offset $offset), trying again", ex)
+                return getAllAlbums(artistId, offset)
+            }
+
+            list.addAll(more)
             return list
         }
 
