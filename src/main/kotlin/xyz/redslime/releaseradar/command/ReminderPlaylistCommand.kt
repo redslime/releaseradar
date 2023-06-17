@@ -34,6 +34,8 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
     }
 
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
+        val userId = interaction.user.id.asLong()
+        val handler = db.getUserPlaylistHandler(userId)
         var re: EphemeralMessageInteractionResponse? = null
         re = interaction.deferEphemeralResponse().respond {
             embed {
@@ -54,6 +56,19 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
                 addInteractionButton(this, ButtonStyle.Danger, "Cancel") {
                     re?.delete()
                 }
+
+                if(handler != null)
+                    addInteractionButton(this, ButtonStyle.Secondary, "Revert to individual track links") {
+                        val response = it.deferEphemeralResponse()
+                        db.setUserPlaylistHandler(userId, null)
+
+                        response.respond {
+                            embed {
+                                success()
+                                title = "Reminders will be posted individually from now on"
+                            }
+                        }
+                    }
             }
         }
     }

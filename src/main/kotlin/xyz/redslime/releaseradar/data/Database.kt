@@ -380,11 +380,19 @@ class Database(private val cache: Cache, private val host: String, private val u
             .fetchOne()?.refreshToken
     }
 
-    fun setUserPlaylistHandler(userId: Long, handler: PlaylistHandler) {
-        connect().update(USER)
-            .set(USER.PLAYLIST_TYPE, "${handler.duration.name};${handler.public};${handler.append}")
-            .where(USER.ID.eq(userId))
-            .execute()
+    fun setUserPlaylistHandler(userId: Long, handler: PlaylistHandler?) {
+        if(handler != null) {
+            connect().update(USER)
+                .set(USER.PLAYLIST_TYPE, "${handler.duration.name};${handler.public};${handler.append}")
+                .where(USER.ID.eq(userId))
+                .execute()
+        } else {
+            connect().update(USER)
+                .setNull(USER.PLAYLIST_DATA)
+                .setNull(USER.PLAYLIST_TYPE)
+                .where(USER.ID.eq(userId))
+                .execute()
+        }
     }
 
     fun getUserPlaylistHandler(userId: Long): PlaylistHandler? {
