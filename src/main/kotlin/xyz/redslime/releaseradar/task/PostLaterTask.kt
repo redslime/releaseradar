@@ -72,18 +72,14 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                 val user = client.getUser(Snowflake(channelId))
 
                 if(playlistHandler != null) {
-                    user?.let { playlistHandler.postAlbums(it, list) }
-                } else {
-                    user?.getDmChannelOrNull()?.let {
-                        list.chunked(5).forEach { tracks ->
-                            it.createMessage {
-                                content = tracks.map { it.getSmartLink() }.joinToString("\n")
-                            }
-                        }
-
-                        if(list.size > 1)
-                            it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
+                    try {
+                        user?.let { playlistHandler.postAlbums(it, list) }
+                    } catch (ex: Exception) {
+                        logger.error("Tried to create/edit playlist for ${user?.username}, failed:", ex)
+                        sendIndividualLinks(user, list)
                     }
+                } else {
+                    sendIndividualLinks(user, list)
                 }
             }
 
@@ -121,6 +117,19 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
 
         return false
+    }
+
+    private suspend fun sendIndividualLinks(user: User?, albums: MutableList<Album>) {
+        user?.getDmChannelOrNull()?.let {
+            albums.chunked(5).forEach { tracks ->
+                it.createMessage {
+                    content = tracks.map { it.getSmartLink() }.joinToString("\n")
+                }
+            }
+
+            if(albums.size > 1)
+                it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
+        }
     }
 
     fun reset() {
