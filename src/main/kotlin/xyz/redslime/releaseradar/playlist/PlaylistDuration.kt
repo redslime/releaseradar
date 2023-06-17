@@ -1,6 +1,7 @@
 package xyz.redslime.releaseradar.playlist
 
-import java.time.LocalDateTime
+import xyz.redslime.releaseradar.util.Timezone
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
@@ -28,7 +29,7 @@ enum class PlaylistDuration(private val ly: String? = null) {
     }
 
     fun getTitleToday(): String {
-        val now = LocalDateTime.now()
+        val now = ZonedDateTime.now(Timezone.ASAP.zone)
 
         return when(this) {
             WEEK -> "Week ${now.format(getDateFormatter())}"

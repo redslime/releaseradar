@@ -3,6 +3,7 @@ package xyz.redslime.releaseradar.command
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.behavior.interaction.response.createEphemeralFollowup
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.core.entity.interaction.followup.EphemeralFollowupMessage
@@ -12,12 +13,15 @@ import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.actionRow
 import dev.kord.rest.builder.message.modify.embed
-import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.db
-import xyz.redslime.releaseradar.error
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.toList
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.playlist.PlaylistDuration
 import xyz.redslime.releaseradar.playlist.PlaylistHandler
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.util.albumRegex
+import xyz.redslime.releaseradar.util.getStartOfToday
+import xyz.redslime.releaseradar.util.trackRegex
 
 /**
  * @author redslime
@@ -121,13 +125,49 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
                         db.setUserPlaylistHandler(user.id.asLong(), handler)
 
                         newRe?.delete()
-                        re.createEphemeralFollowup {
+                        newRe = re.createEphemeralFollowup {
                             embed {
                                 success()
                                 title = ":white_check_mark: Reminder Playlist Setup Complete!"
                                 description = "Congratulations! Your reminders will now be sent as a playlist automatically"
                                 footer {
                                     text = "To change these settings, just do /reminderplaylist again"
+                                }
+                            }
+                            actionRow {
+                                addInteractionButton(this, ButtonStyle.Success, "Send today's tracks as playlist", ReactionEmoji.Unicode("\uD83D\uDD03")) { interaction ->
+                                    val response = interaction.deferEphemeralResponse()
+                                    val today = getStartOfToday()
+                                    val channel = interaction.user.getDmChannelOrNull()
+
+                                    if(channel?.getLastMessage() != null) {
+                                        val messages = channel.getMessagesBefore(channel.lastMessageId!!)
+                                            .takeWhile { it.timestamp > today }
+                                            .filter { it.author == interaction.kord.getSelf() }
+                                            .toList()
+
+                                        if(messages.isNotEmpty()) {
+                                            val albums = messages.flatMap { it.content.split("\n") }
+                                                .filter { it.matches(trackRegex) || it.matches(albumRegex) }
+                                                .mapNotNull {
+                                                    if(it.matches(trackRegex)) {
+                                                        val trackId = it.replace(trackRegex, "$1")
+                                                        spotify.getAlbumFromTrack(trackId)?.toAlbum()
+                                                    } else {
+                                                        val albumId = it.replace(albumRegex, "$1")
+                                                        spotify.getAlbumInstance(albumId)
+                                                    }
+                                                }
+
+                                            newRe?.delete()
+                                            handler.postAlbums(interaction.user, albums)
+                                            return@addInteractionButton
+                                        }
+                                    }
+
+                                    response.respond {
+                                        content = "Looks like there are no tracks for today! You will automatically receive tracks as a playlist in the future :)"
+                                    }
                                 }
                             }
                         }

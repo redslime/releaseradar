@@ -188,4 +188,8 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     suspend fun getAlbumFromTrack(trackId: String): SimpleAlbum? {
         return spotify.tracks.getTrack(trackId)?.album
     }
+
+    suspend fun getAlbumInstance(albumId: String): Album? {
+        return spotify.albums.getAlbum(albumId, Market.WS)
+    }
 }

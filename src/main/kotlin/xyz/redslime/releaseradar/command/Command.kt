@@ -78,10 +78,11 @@ abstract class Command(val name: String, val description: String, val perm: Perm
         }
     }
 
-    protected fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
+    protected fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null, block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
         val key = "$name-${label.lowercase()}-${System.currentTimeMillis().hashCode()}"
         builder.interactionButton(style, key) {
             this.label = label
+            emoji?.let { emoji(it) }
         }
         buttons[key] = block
     }

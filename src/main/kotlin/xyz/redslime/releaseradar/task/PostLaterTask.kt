@@ -80,6 +80,9 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                                 content = tracks.map { it.getSmartLink() }.joinToString("\n")
                             }
                         }
+
+                        if(list.size > 1)
+                            it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
                     }
                 }
             }
