@@ -39,7 +39,7 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
         var re: EphemeralMessageInteractionResponse? = null
         re = interaction.deferEphemeralResponse().respond {
             embed {
-                title = "Reminder Playlist Setup (1/4)"
+                title = "Reminder Playlist Setup (1/3)"
                 description = "Let's walk through a couple options you can set for your reminder playlist:\n\n" +
                         "**How often should a new playlist be created?**"
             }
@@ -84,7 +84,7 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
         var newRe: EphemeralFollowupMessage? = null
         newRe = re?.createEphemeralFollowup {
             embed {
-                title = "Reminder Playlist Setup (2/4)"
+                title = "Reminder Playlist Setup (2/3)"
                 description = "**Should the playlist be cleared every day before new tracks are added?**"
             }
             actionRow {
@@ -102,25 +102,29 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
     }
 
     private suspend fun selectPublic(re: EphemeralMessageInteractionResponse?, fo: EphemeralFollowupMessage?, user: User, duration: PlaylistDuration, append: Boolean) {
-        fo?.delete()
-        var newRe: EphemeralFollowupMessage? = null
-        newRe = re?.createEphemeralFollowup {
-            embed {
-                title = "Reminder Playlist Setup (3/4)"
-                description = "**Should the playlist be public?**"
-            }
-            actionRow {
-                addInteractionButton(this, ButtonStyle.Danger, "Cancel") {
-                    newRe?.delete()
-                }
-                addInteractionButton(this, ButtonStyle.Secondary, "Yes - Public") {
-                    linkSpotify(re, newRe, user, duration, append, true)
-                }
-                addInteractionButton(this, ButtonStyle.Secondary, "No - Private") {
-                    linkSpotify(re, newRe, user, duration, append, false)
-                }
-            }
-        }
+        linkSpotify(re, fo, user, duration, append, true)
+        // There's currently a bug in the Spotify API that essentially makes private playlists impossible to work with:
+        // https://community.spotify.com/t5/Spotify-for-Developers/Api-to-create-a-private-playlist-doesn-t-work/td-p/5407807
+
+//        fo?.delete()
+//        var newRe: EphemeralFollowupMessage? = null
+//        newRe = re?.createEphemeralFollowup {
+//            embed {
+//                title = "Reminder Playlist Setup (3/4)"
+//                description = "**Should the playlist be public?**"
+//            }
+//            actionRow {
+//                addInteractionButton(this, ButtonStyle.Danger, "Cancel") {
+//                    newRe?.delete()
+//                }
+//                addInteractionButton(this, ButtonStyle.Secondary, "Yes - Public") {
+//                    linkSpotify(re, newRe, user, duration, append, true)
+//                }
+//                addInteractionButton(this, ButtonStyle.Secondary, "No - Private") {
+//                    linkSpotify(re, newRe, user, duration, append, false)
+//                }
+//            }
+//        }
     }
 
     private suspend fun linkSpotify(re: EphemeralMessageInteractionResponse?, fo: EphemeralFollowupMessage?, user: User, duration: PlaylistDuration, append: Boolean, public: Boolean) {
@@ -129,7 +133,7 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
         var newRe: EphemeralFollowupMessage? = null
         newRe = re?.createEphemeralFollowup {
             embed {
-                title = "Reminder Playlist Setup (4/4)"
+                title = "Reminder Playlist Setup (3/3)"
                 description = "Finally, please link your Spotify account.\n" +
                         "This authorizes the bot to create $visibility playlists on your behalf."
             }
@@ -176,6 +180,7 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
 
                                             newRe?.delete()
                                             handler.postAlbums(interaction.user, albums)
+                                            response.delete()
                                             return@addInteractionButton
                                         }
                                     }
