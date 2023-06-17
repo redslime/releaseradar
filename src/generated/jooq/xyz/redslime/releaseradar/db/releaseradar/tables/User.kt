@@ -13,7 +13,7 @@ import org.jooq.ForeignKey
 import org.jooq.Name
 import org.jooq.Record
 import org.jooq.Records
-import org.jooq.Row2
+import org.jooq.Row5
 import org.jooq.Schema
 import org.jooq.SelectField
 import org.jooq.Table
@@ -74,6 +74,21 @@ open class User(
      */
     val TIMEZONE: TableField<UserRecord, String?> = createField(DSL.name("timezone"), SQLDataType.VARCHAR(32), this, "")
 
+    /**
+     * The column <code>releaseradar.user.refresh_token</code>.
+     */
+    val REFRESH_TOKEN: TableField<UserRecord, String?> = createField(DSL.name("refresh_token"), SQLDataType.VARCHAR(256), this, "")
+
+    /**
+     * The column <code>releaseradar.user.playlist_type</code>.
+     */
+    val PLAYLIST_TYPE: TableField<UserRecord, String?> = createField(DSL.name("playlist_type"), SQLDataType.VARCHAR(64), this, "")
+
+    /**
+     * The column <code>releaseradar.user.playlist_data</code>.
+     */
+    val PLAYLIST_DATA: TableField<UserRecord, String?> = createField(DSL.name("playlist_data"), SQLDataType.VARCHAR(256), this, "")
+
     private constructor(alias: Name, aliased: Table<UserRecord>?): this(alias, null, null, aliased, null)
     private constructor(alias: Name, aliased: Table<UserRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
 
@@ -116,18 +131,18 @@ open class User(
     public override fun rename(name: Table<*>): User = User(name.getQualifiedName(), null)
 
     // -------------------------------------------------------------------------
-    // Row2 type methods
+    // Row5 type methods
     // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row2<Long?, String?> = super.fieldsRow() as Row2<Long?, String?>
+    public override fun fieldsRow(): Row5<Long?, String?, String?, String?, String?> = super.fieldsRow() as Row5<Long?, String?, String?, String?, String?>
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
      */
-    fun <U> mapping(from: (Long?, String?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    fun <U> mapping(from: (Long?, String?, String?, String?, String?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
 
     /**
      * Convenience mapping calling {@link SelectField#convertFrom(Class,
      * Function)}.
      */
-    fun <U> mapping(toType: Class<U>, from: (Long?, String?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    fun <U> mapping(toType: Class<U>, from: (Long?, String?, String?, String?, String?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
 }

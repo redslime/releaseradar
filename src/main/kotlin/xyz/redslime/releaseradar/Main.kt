@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 /**
@@ -27,12 +28,19 @@ lateinit var discord: DiscordClient
 lateinit var db: Database
 lateinit var cache: Cache
 lateinit var spotify: SpotifyClient
+lateinit var webServer: WebServer
 
 suspend fun main() {
     config = readConfig()
     cache = Cache()
     db = Database(cache, config.dbHost, config.dbUser, config.dbPassword)
     spotify = SpotifyClient(config.spotifyClientId, config.spotifySecret).login()
+    webServer = WebServer()
+
+    thread {
+        webServer.start()
+    }
+
     discord = DiscordClient().create()
 }
 

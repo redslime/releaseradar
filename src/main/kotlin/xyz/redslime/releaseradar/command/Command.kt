@@ -4,22 +4,25 @@ import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.builder.components.emoji
+import dev.kord.core.entity.ReactionEmoji
+import dev.kord.core.entity.User
 import dev.kord.core.entity.channel.ResolvedChannel
 import dev.kord.core.entity.interaction.ButtonInteraction
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
+import dev.kord.core.entity.interaction.SelectMenuInteraction
 import dev.kord.rest.builder.component.ActionRowBuilder
+import dev.kord.rest.builder.component.StringSelectBuilder
 import dev.kord.rest.builder.component.option
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.channel
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.modify.embed
 import org.apache.logging.log4j.LogManager
-import xyz.redslime.releaseradar.PermissionLevel
-import xyz.redslime.releaseradar.allowedChannels
-import xyz.redslime.releaseradar.commands
-import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.Timezone
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
 /**
  * @author redslime
@@ -28,7 +31,7 @@ import kotlin.coroutines.CoroutineContext
 abstract class Command(val name: String, val description: String, val perm: PermissionLevel = PermissionLevel.EVERYONE, val dms: Boolean = false) {
 
     val buttons: HashMap<String, suspend CoroutineContext.(ButtonInteraction) -> Unit> = HashMap()
-    val timezoneSelectors: HashMap<String, suspend CoroutineContext.(Timezone) -> Unit> = HashMap()
+    val selectors: HashMap<String, suspend CoroutineContext.(SelectMenuInteraction) -> Unit> = HashMap()
 
     abstract fun addParameters(builder: ChatInputCreateBuilder)
 
@@ -83,13 +86,23 @@ abstract class Command(val name: String, val description: String, val perm: Perm
         buttons[key] = block
     }
 
-    protected fun addTimezoneSelector(builder: ActionRowBuilder, block: suspend CoroutineContext.(Timezone) -> Unit) {
-        val key = "$name-timezone-${System.currentTimeMillis().hashCode()}"
-        builder.stringSelect(key) {
-            Timezone.values().forEach {
-                option(it.friendly, it.name)
+    protected fun addSpotifyLinkButton(builder: ActionRowBuilder, user: User, public: Boolean, block: suspend CoroutineContext.(Boolean) -> Unit) {
+        builder.linkButton(webServer.getAuthUrl(public) {
+            if (this != null) {
+                db.updateUserRefreshToken(user.id.asLong(), this)
+                block.invoke(coroutineContext, true)
+            } else {
+                block.invoke(coroutineContext, false)
             }
+        }) {
+            label = "Link Spotify"
+            emoji(ReactionEmoji.Unicode("\uD83D\uDD17"))
         }
-        timezoneSelectors[key] = block
+    }
+
+    protected fun addSelectOption(builder: StringSelectBuilder, label: String, key: String, block: suspend CoroutineContext.(SelectMenuInteraction) -> Unit) {
+        val keyk = "$key-${System.currentTimeMillis().hashCode()}"
+        builder.option(label, keyk)
+        selectors[keyk] = block
     }
 }

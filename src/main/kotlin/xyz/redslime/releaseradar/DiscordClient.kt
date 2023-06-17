@@ -58,6 +58,8 @@ class DiscordClient {
         EmbedTypeCommand().register(client)
         SetReactionsCommand().register(client)
         CollectRemindersCommand().register(client)
+//        LinkSpotifyCommand().register(client)
+        ReminderPlaylistCommand().register(client)
     }
 
     private fun registerListeners() {

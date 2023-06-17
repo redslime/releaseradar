@@ -35,16 +35,13 @@ class InteractionListener {
 
         client.on<SelectMenuInteractionCreateEvent> {
             val interaction = this.interaction
-            val timezone = Timezone.valueOf(this.interaction.values.first())
             val userId = interaction.user.id.asLong()
+            val selected = this.interaction.values.first()
 
             interaction.data.data.customId.value.let { key ->
-                commands.filter { cmd -> cmd.timezoneSelectors.containsKey(key) }.forEach { cmd ->
-                    cmd.timezoneSelectors[key]?.invoke(coroutineContext, timezone)
-                    cmd.timezoneSelectors.remove(key)
-                }
-
                 if(key == "timezone-prompt") {
+                    val timezone = Timezone.valueOf(selected)
+
                     interaction.deferEphemeralResponse().respond {
                         timezoneCallbacks.filter { it.first == userId }.forEach { it.second.invoke(timezone) }
                         timezoneCallbacks.removeIf { it.first == userId }
@@ -60,6 +57,10 @@ class InteractionListener {
                         }
                     }
                     interaction.message.delete()
+                } else {
+                    commands.firstOrNull { cmd -> cmd.selectors.containsKey(selected) }?.let { cmd ->
+                        cmd.selectors.remove(selected)?.invoke(coroutineContext, interaction)
+                    }
                 }
             }
         }

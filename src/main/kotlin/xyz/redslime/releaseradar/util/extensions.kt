@@ -6,6 +6,10 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
 import dev.kord.rest.builder.message.EmbedBuilder
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import kotlinx.css.CssBuilder
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
@@ -124,4 +128,12 @@ fun ReactionEmoji.Companion.from(str: String): ReactionEmoji {
         return ReactionEmoji.Custom(id, name, animated)
     }
     return ReactionEmoji.Unicode(str)
+}
+
+fun String.qapitalize(): String {
+    return this.lowercase().replaceFirstChar { it.uppercase() }
+}
+
+suspend inline fun ApplicationCall.respondCss(builder: CssBuilder.() -> Unit) {
+    this.respondText(CssBuilder().apply(builder).toString(), ContentType.Text.CSS)
 }

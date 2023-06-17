@@ -17,6 +17,8 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecor
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.*
 import xyz.redslime.releaseradar.getDbId
+import xyz.redslime.releaseradar.playlist.PlaylistDuration
+import xyz.redslime.releaseradar.playlist.PlaylistHandler
 import xyz.redslime.releaseradar.task.PostLaterTask
 import xyz.redslime.releaseradar.util.Timezone
 import java.time.Duration
@@ -360,6 +362,55 @@ class Database(private val cache: Cache, private val host: String, private val u
         connect().update(RADAR_CHANNEL)
             .set(RADAR_CHANNEL.EMOTES, mentions)
             .where(RADAR_CHANNEL.SERVER_ID.eq(serverId))
+            .execute()
+    }
+
+    fun updateUserRefreshToken(userId: Long, token: String) {
+        connect().insertInto(USER)
+            .set(USER.ID, userId)
+            .set(USER.REFRESH_TOKEN, token)
+            .onDuplicateKeyUpdate()
+            .set(USER.REFRESH_TOKEN, token)
+            .execute()
+    }
+
+    fun getUserRefreshToken(userId: Long): String? {
+        return connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()?.refreshToken
+    }
+
+    fun setUserPlaylistHandler(userId: Long, handler: PlaylistHandler) {
+        connect().update(USER)
+            .set(USER.PLAYLIST_TYPE, "${handler.duration.name};${handler.public};${handler.append}")
+            .where(USER.ID.eq(userId))
+            .execute()
+    }
+
+    fun getUserPlaylistHandler(userId: Long): PlaylistHandler? {
+        val rec = connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()
+
+        if(rec != null && rec.playlistType?.isNotBlank() == true) {
+            val arr = rec.playlistType!!.split(";")
+            val duration = PlaylistDuration.valueOf(arr[0])
+            return PlaylistHandler(duration, arr[1].toBoolean(), arr[2].toBoolean())
+        }
+
+        return null
+    }
+
+    fun getUserPlaylistData(userId: Long): String? {
+        return connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()?.playlistData
+    }
+
+    fun setUserPlaylistData(userId: Long, data: String) {
+        connect().update(USER)
+            .set(USER.PLAYLIST_DATA, data)
+            .where(USER.ID.eq(userId))
             .execute()
     }
 }

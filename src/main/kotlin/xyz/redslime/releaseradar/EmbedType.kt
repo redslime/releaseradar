@@ -10,6 +10,6 @@ enum class EmbedType {
     SPOTIFY;
 
     fun getFriendly(): String {
-        return name.lowercase().replaceFirstChar { it.uppercase() }
+        return name.qapitalize()
     }
 }

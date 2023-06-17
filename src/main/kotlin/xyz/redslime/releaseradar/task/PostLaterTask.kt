@@ -1,5 +1,6 @@
 package xyz.redslime.releaseradar.task
 
+import com.adamratzman.spotify.models.Album
 import com.adamratzman.spotify.models.SimpleAlbum
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
@@ -48,7 +49,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
     private suspend fun runActual(client: Kord) {
         // find the timezone where its midnight
         Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
-            val userDms = mutableMapOf<Long, MutableList<String>>()
+            val userDms = mutableMapOf<Long, MutableList<Album>>()
             val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
@@ -57,9 +58,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             spotify.getAlbumsBatch(albumIds).forEach { album ->
                 entries.filter { it.timezone == timezone && it.albumId == album.id }.forEach { entry ->
                     if(entry.dm) {
-                        album.getSmartLink()?.let { link ->
-                            userDms.getOrPut(entry.channelId) { mutableListOf() }.add(link)
-                        }
+                        userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
                     } else {
                         client.getChannel(Snowflake(entry.channelId))?.let { channel ->
                             postAlbum(album, channel as MessageChannelBehavior, db.getRadarId(channel))
@@ -69,10 +68,17 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             }
 
             userDms.forEach { (channelId, list) ->
-                client.getUser(Snowflake(channelId))?.getDmChannelOrNull()?.let {
-                    list.chunked(5).forEach { tracks ->
-                        it.createMessage {
-                            content = tracks.joinToString("\n")
+                val playlistHandler = db.getUserPlaylistHandler(channelId)
+                val user = client.getUser(Snowflake(channelId))
+
+                if(playlistHandler != null) {
+                    user?.let { playlistHandler.postAlbums(it, list) }
+                } else {
+                    user?.getDmChannelOrNull()?.let {
+                        list.chunked(5).forEach { tracks ->
+                            it.createMessage {
+                                content = tracks.map { it.getSmartLink() }.joinToString("\n")
+                            }
                         }
                     }
                 }
