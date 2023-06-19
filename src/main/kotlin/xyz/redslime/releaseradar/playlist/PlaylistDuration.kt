@@ -13,6 +13,7 @@ enum class PlaylistDuration(private val ly: String? = null) {
     NEVER,
     DAY("Daily"),
     WEEK("Weekly"),
+    MONTH("Monthly"),
     YEAR("Yearly");
 
     fun getDescription(): String {
@@ -42,6 +43,7 @@ enum class PlaylistDuration(private val ly: String? = null) {
             NEVER -> DateTimeFormatter.ISO_DATE
             DAY -> DateTimeFormatter.ofPattern("MMMM d, yyyy")
             WEEK -> DateTimeFormatter.ofPattern("w, yyyy")
+            MONTH -> DateTimeFormatter.ofPattern("MMMM yyyy")
             YEAR -> DateTimeFormatter.ofPattern("yyyy")
         }
     }
