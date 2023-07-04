@@ -127,8 +127,8 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                 }
             }
 
-            if(albums.size > 1)
-                it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
+//            if(albums.size > 1)
+//                it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
         }
     }
 

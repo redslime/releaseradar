@@ -37,6 +37,18 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
         val userId = interaction.user.id.asLong()
         val handler = db.getUserPlaylistHandler(userId)
         var re: EphemeralMessageInteractionResponse? = null
+
+        if(userId != 115834525329653760L) {
+            interaction.deferEphemeralResponse().respond {
+                embed {
+                    error()
+                    title = ":x: This is currently disabled"
+                    description = "Spotify needs to approve this bot first"
+                }
+            }
+            return
+        }
+
         re = interaction.deferEphemeralResponse().respond {
             embed {
                 title = "Reminder Playlist Setup (1/3)"
