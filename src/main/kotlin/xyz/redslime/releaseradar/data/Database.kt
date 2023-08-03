@@ -422,4 +422,16 @@ class Database(private val cache: Cache, private val host: String, private val u
             .where(USER.ID.eq(userId))
             .execute()
     }
+
+    fun removeArtist(artistId: String) {
+        connect().deleteFrom(ARTIST)
+            .where(ARTIST.ID.eq(artistId))
+            .execute()
+    }
+
+    fun removeArtists(artistIds: List<String>) {
+        connect().deleteFrom(ARTIST)
+            .where(ARTIST.ID.`in`(artistIds))
+            .execute()
+    }
 }

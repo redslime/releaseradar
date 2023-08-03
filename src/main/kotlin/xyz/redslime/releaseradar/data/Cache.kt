@@ -111,7 +111,19 @@ class Cache {
     }
 
     fun removeArtistFromRadar(artist: SimpleArtist, rid: Int): Boolean {
-        return artistRadars.removeIf { it.radarId == rid && it.artistId == artist.id }
+        return removeArtistFromRadar(artist.id, rid)
+    }
+
+    fun removeArtistFromRadar(artistId: String, rid: Int): Boolean {
+        val removed = artistRadars.removeIf { it.radarId == rid && it.artistId == artistId }
+
+        if(artistRadars.none { it.artistId == artistId }) {
+            // artist is on no radar anymore, remove it
+            artists.removeIf { it.id == artistId }
+            db.removeArtist(artistId)
+        }
+
+        return removed
     }
 
     fun clearRadar(rid: Int) {
@@ -190,8 +202,15 @@ class Cache {
     }
 
     fun purgeServerData(serverId: Long) {
+        val radars = radarChannels.filter { it.serverId == serverId }.map { it.id }.toList()
+        val artists = radars.flatMap { rid -> artistRadars.filter { it.radarId == rid }.toList() }
+
         configChannels.remove(serverId)
-        radarChannels.filter { it.serverId == serverId }.map { it.id }.forEach { rid -> artistRadars.removeIf { it.radarId == rid } }
+        radars.forEach { rid -> artistRadars.removeIf { it.radarId == rid } }
         radarChannels.removeIf { it.serverId == serverId }
+
+        // clean up abandoned artists
+        val gone = artists.filter { a -> artistRadars.none { it.artistId == a.artistId } }
+        db.removeArtists(gone.mapNotNull { it.artistId })
     }
 }
