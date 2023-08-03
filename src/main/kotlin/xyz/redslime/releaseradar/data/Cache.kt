@@ -188,4 +188,10 @@ class Cache {
     fun getAllActiveRadars(): List<Long> {
         return artistRadars.mapNotNull { it.radarId }.distinct().mapNotNull { getChannelId(it) }.toList()
     }
+
+    fun purgeServerData(serverId: Long) {
+        configChannels.remove(serverId)
+        radarChannels.filter { it.serverId == serverId }.map { it.id }.forEach { rid -> artistRadars.removeIf { it.radarId == rid } }
+        radarChannels.removeIf { it.serverId == serverId }
+    }
 }

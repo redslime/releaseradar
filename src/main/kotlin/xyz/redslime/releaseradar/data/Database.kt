@@ -248,6 +248,7 @@ class Database(private val cache: Cache, private val host: String, private val u
         connect().deleteFrom(RADAR_CHANNEL)
             .where(RADAR_CHANNEL.SERVER_ID.eq(serverId))
             .execute()
+        cache.purgeServerData(serverId)
     }
 
     fun clearRadar(radarId: Int) {
