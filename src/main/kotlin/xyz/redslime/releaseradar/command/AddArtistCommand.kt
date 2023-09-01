@@ -37,7 +37,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                     description = "Added to release radar in ${channel.mention}"
                     author {
                         name = artist.name
-                        icon = artist.images.first().url
+                        icon = artist.images.firstOrNull()?.url
                         url = artist.externalUrls.spotify
                     }
                 }
@@ -53,7 +53,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                     description = "Failed to add to release radar, perhaps already on the list?"
                     author {
                         name = artist.name
-                        icon = artist.images.first().url
+                        icon = artist.images.firstOrNull()?.url
                         url = artist.externalUrls.spotify
                     }
                 }

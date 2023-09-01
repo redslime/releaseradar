@@ -38,7 +38,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     suspend fun getLatestRelease(artistId: String): SimpleAlbum? {
         val albums = getAllAlbums(artistId)
         albums.sortByDescending { album -> album.getReleaseDate() }
-        return if (albums.isNotEmpty()) albums.first() else null
+        return albums.firstOrNull()
     }
 
     suspend fun getAlbumsAfter(artistId: String, date: LocalDateTime?): List<SimpleAlbum> {

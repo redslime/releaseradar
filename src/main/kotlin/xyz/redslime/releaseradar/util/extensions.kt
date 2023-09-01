@@ -63,7 +63,7 @@ fun SimpleAlbum.isFutureRelease(): Boolean {
 
 fun Album.getSmartLink(): String? {
     if(this.totalTracks == 1)
-        return this.tracks.first()?.externalUrls?.spotify
+        return this.tracks.firstOrNull()?.externalUrls?.spotify
     return this.externalUrls.spotify
 }
 
