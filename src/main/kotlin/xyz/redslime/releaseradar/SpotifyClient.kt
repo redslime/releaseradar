@@ -10,6 +10,7 @@ import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.exception.TooManyNamesException
+import xyz.redslime.releaseradar.util.resolveShortenedLink
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -21,6 +22,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
 
     private val artistRegex = Regex(".*artist/([A-z0-9]{22}).*")
     private val playlistRegex = Regex(".*playlist/([A-z0-9]{22}).*")
+    private val shortLinkRegex = Regex(".*spotify.link/.*")
     private val logger = LogManager.getLogger(javaClass)
     private val coroutine = CoroutineScope(Dispatchers.IO)
     private lateinit var spotify: SpotifyAppApi
@@ -99,6 +101,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     suspend fun findArtists(str: String, useCache: Boolean = true, artistLimit: Int): Map<String, Artist?> {
         val resultMap = HashMap<String, Artist?>()
         val names = str.split(", ").flatMap { s -> s.split(",") }.toList().toMutableList()
+        val removeNamesLater = ArrayList<String>()
 
         // process uids first
         val urlList = names.filter { it.matches(artistRegex) }.toMutableList()
@@ -106,17 +109,27 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
 
         // with cache we can possibly look up the uid from memory
         if(useCache) {
-            val removeTemp = ArrayList<String>()
             names.forEach { name ->
                 cache.findArtistRecByName(name, true)?.let { rec ->
                     rec.id?.let { artistId ->
-                        removeTemp.add(name) // dont need to lookup this name later
+                        removeNamesLater.add(name) // dont need to lookup this name later
                         urlList.add("artist/$artistId") // todo this kinda scuffed
                     }
                 }
             }
-            names.removeAll(removeTemp)
         }
+
+        // resolve any spotify.link urls first
+        names.filter { it.matches(shortLinkRegex) }.forEach {
+            resolveShortenedLink(it, logger)?.let { uid ->
+                if(uid.matches(artistRegex)) {
+                    removeNamesLater.add(it)
+                    urlList.add(uid)
+                }
+            }
+        }
+
+        names.removeAll(removeNamesLater)
 
         // fetch artists by uid list
         if(urlList.isNotEmpty()) {
@@ -163,7 +176,13 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         }
     }
 
-    suspend fun getArtistsFromPlaylist(playlistUrl: String): List<SimpleArtist> {
+    suspend fun getArtistsFromPlaylist(_playlistUrl: String): List<SimpleArtist> {
+        var playlistUrl = _playlistUrl
+
+        if(playlistUrl.matches(shortLinkRegex)) {
+            playlistUrl = resolveShortenedLink(playlistUrl, logger) ?: ""
+        }
+
         if(!playlistUrl.matches(playlistRegex))
             throw InvalidUrlException()
 

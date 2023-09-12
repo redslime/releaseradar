@@ -183,11 +183,11 @@ class Database(private val cache: Cache, private val host: String, private val u
         val rid = getRadarId(channel)
         val removed = cache.removeArtistFromRadar(artist, rid)
 
-        if(removed) {
+        if(removed.first) {
             return connect().deleteFrom(ARTIST_RADAR)
                 .where(ARTIST_RADAR.RADAR_ID.eq(rid))
                 .and(ARTIST_RADAR.ARTIST_ID.eq(artist.id))
-                .execute() == 1
+                .execute() == 1 || removed.second
         }
 
         return false

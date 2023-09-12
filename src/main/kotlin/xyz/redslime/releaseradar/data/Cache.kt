@@ -106,24 +106,25 @@ class Cache {
         }
     }
 
-    fun removeArtistFromRadar(artist: Artist, rid: Int): Boolean {
+    fun removeArtistFromRadar(artist: Artist, rid: Int): Pair<Boolean, Boolean> {
         return removeArtistFromRadar(artist.toSimpleArtist(), rid)
     }
 
-    fun removeArtistFromRadar(artist: SimpleArtist, rid: Int): Boolean {
+    fun removeArtistFromRadar(artist: SimpleArtist, rid: Int): Pair<Boolean, Boolean> {
         return removeArtistFromRadar(artist.id, rid)
     }
 
-    fun removeArtistFromRadar(artistId: String, rid: Int): Boolean {
+    fun removeArtistFromRadar(artistId: String, rid: Int): Pair<Boolean, Boolean> {
         val removed = artistRadars.removeIf { it.radarId == rid && it.artistId == artistId }
 
         if(artistRadars.none { it.artistId == artistId }) {
             // artist is on no radar anymore, remove it
             artists.removeIf { it.id == artistId }
             db.removeArtist(artistId)
+            return Pair(removed, true)
         }
 
-        return removed
+        return Pair(removed, false)
     }
 
     fun clearRadar(rid: Int) {

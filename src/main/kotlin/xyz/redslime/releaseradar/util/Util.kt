@@ -11,6 +11,8 @@ import xyz.redslime.releaseradar.DiscordClient
 import xyz.redslime.releaseradar.plural
 import xyz.redslime.releaseradar.spotify
 import xyz.redslime.releaseradar.toAlbum
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.*
 
 /**
@@ -85,4 +87,33 @@ suspend fun printToDiscord(client: Kord, logger: Logger, str: String) {
     logger.info(str)
     val channel = client.getChannel(Snowflake(1108804483938525325L)) as TextChannel
     channel.createMessage(str)
+}
+
+fun resolveShortenedLink(shortenedLink: String, logger: Logger): String? {
+    val url = URL(shortenedLink)
+
+    val connection = url.openConnection() as HttpURLConnection
+    connection.instanceFollowRedirects = false
+    connection.connect()
+
+    when (val responseCode = connection.responseCode) {
+        in 300 until 400 -> {
+            val redirectUrl = connection.getHeaderField("Location")
+            return if (redirectUrl != null) {
+                // Recursively resolve the redirected URL
+                resolveShortenedLink(redirectUrl, logger)
+            } else {
+                // If no 'Location' header is found, return the original shortened link
+                shortenedLink
+            }
+        }
+        HttpURLConnection.HTTP_OK -> {
+            // If the response code is 200, it means it's not a shortened link or it's already resolved
+            return shortenedLink
+        }
+        else -> {
+            logger.error("Failed to resolve the shortened link. Response code: $responseCode")
+            return null
+        }
+    }
 }
