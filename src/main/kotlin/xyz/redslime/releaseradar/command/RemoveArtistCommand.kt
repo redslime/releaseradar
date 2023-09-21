@@ -11,6 +11,8 @@ import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
+import xyz.redslime.releaseradar.util.NameCacheProvider
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
@@ -82,6 +84,17 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
                         }
                     }
                 }
+            }
+        }
+    }
+
+    override fun getNameCacheProvider(interaction: ChatInputCommandInteraction): NameCacheProvider {
+        return object : NameCacheProvider {
+            override suspend fun findArtistRecByName(name: String, ignoreCase: Boolean): List<ArtistRecord> {
+                // limit the pool of artists to search in to just this channel
+                val channel = interaction.command.channels["channel"]!!
+                return cache.getArtistRecordsInRadarChannel(channel)
+                    .filter { it.name.equals(name, ignoreCase) }
             }
         }
     }

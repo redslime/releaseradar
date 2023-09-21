@@ -7,11 +7,9 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.modify.embed
-import xyz.redslime.releaseradar.PermissionLevel
-import xyz.redslime.releaseradar.buildNoSuchArtist
-import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.exception.TooManyNamesException
-import xyz.redslime.releaseradar.spotify
+import xyz.redslime.releaseradar.util.NameCacheProvider
 
 /**
  * @author redslime
@@ -38,7 +36,7 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
         val artists: Map<String, Artist?>
 
         try {
-            artists = spotify.findArtists(cmd.strings["artist"]!!, artistLimit = artistLimit)
+            artists = spotify.findArtists(getNameCacheProvider(interaction), cmd.strings["artist"]!!, artistLimit = artistLimit)
         } catch (exc: TooManyNamesException) {
             response.respond {
                 embed {
@@ -83,5 +81,9 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
 
             handleArtists(list, response, unresolved, interaction)
         }
+    }
+
+    open fun getNameCacheProvider(interaction: ChatInputCommandInteraction): NameCacheProvider {
+        return cache
     }
 }

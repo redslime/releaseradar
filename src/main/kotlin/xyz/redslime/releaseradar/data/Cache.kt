@@ -8,6 +8,7 @@ import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
+import xyz.redslime.releaseradar.util.NameCacheProvider
 import xyz.redslime.releaseradar.util.Timezone
 import java.time.LocalDateTime
 
@@ -15,7 +16,7 @@ import java.time.LocalDateTime
  * @author redslime
  * @version 2023-05-19
  */
-class Cache {
+class Cache : NameCacheProvider {
 
     private val radarChannels: MutableList<RadarChannelRecord> = ArrayList()
     private val artists: MutableList<ArtistRecord> = ArrayList()
@@ -34,16 +35,19 @@ class Cache {
         return artists.firstOrNull { it.id == id }
     }
 
-    fun findArtistRecByName(name: String, ignoreCase: Boolean = false): ArtistRecord? {
-        val list = artists.filter { it.name.equals(name, ignoreCase = ignoreCase) }
-
-        if(list.size == 1) // make sure we only do this if the name is unique
-            return list.first()
-        return null
+    override suspend fun findArtistRecByName(name: String, ignoreCase: Boolean): List<ArtistRecord> {
+        return artists.filter { it.name.equals(name, ignoreCase = ignoreCase) }
     }
 
     fun getArtistName(id: String?): String? {
         return artists.firstOrNull { rec -> rec.id == id }?.name
+    }
+
+    fun getArtistRecordsInRadarChannel(channel: Channel): List<ArtistRecord> {
+        val radarId = db.getRadarId(channel)
+        return artistRadars
+            .filter { rec -> rec.radarId == radarId }
+            .mapNotNull { id -> artists.firstOrNull { it.id == id.artistId } }
     }
 
     fun getArtistNamesInRadarChannel(channel: Channel): Map<String, String> {

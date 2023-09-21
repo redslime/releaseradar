@@ -10,6 +10,7 @@ import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.exception.TooManyNamesException
+import xyz.redslime.releaseradar.util.NameCacheProvider
 import xyz.redslime.releaseradar.util.resolveShortenedLink
 import java.time.Duration
 import java.time.LocalDateTime
@@ -98,7 +99,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         return list
     }
 
-    suspend fun findArtists(str: String, useCache: Boolean = true, artistLimit: Int): Map<String, Artist?> {
+    suspend fun findArtists(cache: NameCacheProvider, str: String, useCache: Boolean = true, artistLimit: Int): Map<String, Artist?> {
         val resultMap = HashMap<String, Artist?>()
         val names = str.split(", ").flatMap { s -> s.split(",") }.toList().toMutableList()
         val removeNamesLater = ArrayList<String>()
@@ -110,7 +111,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         // with cache we can possibly look up the uid from memory
         if(useCache) {
             names.forEach { name ->
-                cache.findArtistRecByName(name, true)?.let { rec ->
+                cache.findArtistRecByName(name, true).firstOrNull()?.let { rec ->
                     rec.id?.let { artistId ->
                         removeNamesLater.add(name) // dont need to lookup this name later
                         urlList.add("artist/$artistId") // todo this kinda scuffed
