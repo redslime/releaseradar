@@ -15,6 +15,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
+import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
@@ -22,6 +23,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ConfigChannelRec
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.InfoRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.TokenRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
 
 
@@ -42,6 +44,8 @@ val KEY_POST_LATER_POST_LATER_ID_UINDEX: UniqueKey<PostLaterRecord> = Internal.c
 val KEY_POST_LATER_PRIMARY: UniqueKey<PostLaterRecord> = Internal.createUniqueKey(PostLater.POST_LATER, DSL.name("KEY_post_later_PRIMARY"), arrayOf(PostLater.POST_LATER.ID), true)
 val KEY_RADAR_CHANNEL_PRIMARY: UniqueKey<RadarChannelRecord> = Internal.createUniqueKey(RadarChannel.RADAR_CHANNEL, DSL.name("KEY_radar_channel_PRIMARY"), arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)
 val KEY_RADAR_CHANNEL_RADAR_CHANNEL_ID_UINDEX: UniqueKey<RadarChannelRecord> = Internal.createUniqueKey(RadarChannel.RADAR_CHANNEL, DSL.name("KEY_radar_channel_radar_channel_id_uindex"), arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)
+val KEY_TOKEN_PRIMARY: UniqueKey<TokenRecord> = Internal.createUniqueKey(Token.TOKEN, DSL.name("KEY_token_PRIMARY"), arrayOf(Token.TOKEN.ID), true)
+val KEY_TOKEN_TOKEN_ID_UINDEX: UniqueKey<TokenRecord> = Internal.createUniqueKey(Token.TOKEN, DSL.name("KEY_token_token_id_uindex"), arrayOf(Token.TOKEN.ID), true)
 val KEY_USER_PRIMARY: UniqueKey<UserRecord> = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_PRIMARY"), arrayOf(User.USER.ID), true)
 val KEY_USER_USER_ID_UINDEX: UniqueKey<UserRecord> = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_user_id_uindex"), arrayOf(User.USER.ID), true)
 

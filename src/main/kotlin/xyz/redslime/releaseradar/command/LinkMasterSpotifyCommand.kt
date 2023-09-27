@@ -8,8 +8,6 @@ import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.actionRow
 import dev.kord.rest.builder.message.modify.embed
-import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.db
 import xyz.redslime.releaseradar.error
 import xyz.redslime.releaseradar.success
 
@@ -17,27 +15,13 @@ import xyz.redslime.releaseradar.success
  * @author redslime
  * @version 2023-09-22
  */
-class LinkSpotifyCommand: Command("linkspotify", "Link your Spotify account", dms = true) {
+class LinkMasterSpotifyCommand: AdminCommand("linkmasterspotify", "Link the master Spotify account to post playlists to") {
 
     override fun addParameters(builder: ChatInputCreateBuilder) {
 
     }
 
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
-        val userId = interaction.user.id.asLong()
-
-        if(!db.isUserEnlisted(userId)) {
-            interaction.deferEphemeralResponse().respond {
-                embed {
-                    error()
-                    title = ":x: You are not allowed to do this!"
-                    description = "Spotify linking is currently only available to selected people.\n" +
-                            "Contact <@115834525329653760> for help."
-                }
-            }
-            return
-        }
-
         var re: EphemeralMessageInteractionResponse? = null
         re = interaction.deferEphemeralResponse().respond {
             embed {
@@ -46,11 +30,10 @@ class LinkSpotifyCommand: Command("linkspotify", "Link your Spotify account", dm
                         "This authorizes the bot to access and create public playlists on your behalf."
             }
             actionRow {
-                addSpotifyLinkButton(this, interaction.user, true) {
+                addMasterSpotifyLinkButton(this) {
                     re?.delete()
 
                     if(it) {
-                        db.setUserPlaylistData(userId, null)
                         re?.createEphemeralFollowup {
                             embed {
                                 success()

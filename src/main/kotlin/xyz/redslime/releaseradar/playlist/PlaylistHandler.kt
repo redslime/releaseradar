@@ -8,32 +8,64 @@ import com.adamratzman.spotify.models.toPlayableUri
 import com.adamratzman.spotify.refreshSpotifyClientToken
 import com.adamratzman.spotify.spotifyClientApi
 import com.adamratzman.spotify.utils.Market
+import dev.kord.common.entity.ButtonStyle
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
+import dev.kord.rest.builder.message.create.actionRow
 import xyz.redslime.releaseradar.asLong
+import xyz.redslime.releaseradar.command.ReminderPlaylistCommand
+import xyz.redslime.releaseradar.commands
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.util.Interactable
+import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
  * @author redslime
  * @version 2023-06-16
  */
-class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val append: Boolean) {
+class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val append: Boolean, var disabled: Boolean, val always: Boolean): Interactable {
 
     suspend fun postAlbums(user: User, albums: List<Album>) {
         val api = getClient(user)
         val userId = user.id.asLong()
         val playlistData = db.getUserPlaylistData(userId)
-        val playlist = getPlaylist(api, playlistData, userId)
+        val playlistPair = getPlaylist(api, playlistData, userId)
+        val playlist = playlistPair.first
+        val newPlaylist = playlistPair.second
         val playables = albums.flatMap { it.tracks.toList() }.mapNotNull { it?.uri?.uri?.toPlayableUri() }.toTypedArray()
 
         api.playlists.addPlayablesToClientPlaylist(playlist.id, *playables)
-        playlist.externalUrls.spotify?.let { user.getDmChannelOrNull()?.createMessage(it) }
+        playlist.externalUrls.spotify?.let { user.getDmChannelOrNull()?.createMessage {
+            if(newPlaylist) {
+                if(duration == PlaylistDuration.DAY || duration == PlaylistDuration.NEVER)
+                    content = "Wow, that's a lot for today! Here's a playlist with all ${albums.size} releases: $it"
+                else
+                    content = "New ${duration.name.lowercase()}, new playlist! $it"
+            } else {
+                content = "Added ${pluralPrefixed("release", albums.size)} to the playlist: $it"
+            }
+
+            actionRow {
+                addInteractionButton(this, ButtonStyle.Secondary, "Change playlist settings") { i ->
+                    commands.firstOrNull { it.name == "reminderplaylist" }?.let { (it as ReminderPlaylistCommand).sendPrompt(i) }
+                }
+            }
+        } }
         api.shutdown()
     }
 
     private suspend fun getClient(user: User): SpotifyClientApi {
         val userId = user.id.asLong()
-        val token = refreshSpotifyClientToken(config.spotifyClientId, config.spotifySecret, db.getUserRefreshToken(userId), false)
+        var isUserToken = true
+        var refreshToken = db.getUserRefreshToken(userId)
+
+        if(refreshToken == null) {
+            refreshToken = db.getSpotifyMasterRefreshToken()
+            isUserToken = false
+        }
+
+        val token = refreshSpotifyClientToken(config.spotifyClientId, config.spotifySecret, refreshToken, false)
         val api = spotifyClientApi(
             clientId = config.spotifyClientId,
             clientSecret = config.spotifySecret,
@@ -41,21 +73,26 @@ class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val a
             authorization = SpotifyUserAuthorization(token = token)
         ){
             afterTokenRefresh = {
-                it.token.refreshToken?.let { it1 -> db.updateUserRefreshToken(userId, it1) }
+                it.token.refreshToken?.let { newToken ->
+                    if(isUserToken)
+                        db.updateUserRefreshToken(userId, newToken)
+                    else
+                        db.updateSpotifyMasterRefreshToken(newToken)
+                }
             }
         }.build()
         return api
     }
 
-    private suspend fun getPlaylist(api: SpotifyClientApi, data: String?, userId: Long): Playlist {
+    private suspend fun getPlaylist(api: SpotifyClientApi, data: String?, userId: Long): Pair<Playlist, Boolean> {
         if(data == null) {
-            return createNewPlaylist(api, userId)
+            return Pair(createNewPlaylist(api, userId), true)
         }
 
         val arr = data.split(";")
 
         if(arr.size != 2) {
-            return createNewPlaylist(api, userId)
+            return Pair(createNewPlaylist(api, userId), true)
         }
 
         val date = arr[0]
@@ -66,13 +103,13 @@ class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val a
                 val playlist = api.playlists.getClientPlaylist(id)
 
                 if(playlist == null) { // deleted or something, recreate
-                    return createNewPlaylist(api, userId)
+                    return Pair(createNewPlaylist(api, userId), true)
                 } else {
                     if(!append) { // if we dont append, clear first
                         api.playlists.removeAllClientPlaylistPlayables(id)
                     }
 
-                    return playlist.toFullPlaylist(Market.WS)!!
+                    return Pair(playlist.toFullPlaylist(Market.WS)!!, false)
                 }
             }
 
@@ -81,11 +118,11 @@ class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val a
                     val playlist = api.playlists.getClientPlaylist(id)
 
                     if (playlist != null) {
-                        return playlist.toFullPlaylist(Market.WS)!!
+                        return Pair(playlist.toFullPlaylist(Market.WS)!!, false)
                     }
                 }
 
-                return createNewPlaylist(api, userId)
+                return Pair(createNewPlaylist(api, userId), true)
             }
         }
     }

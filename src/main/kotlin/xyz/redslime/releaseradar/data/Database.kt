@@ -375,6 +375,21 @@ class Database(private val cache: Cache, private val host: String, private val u
             .execute()
     }
 
+    fun updateSpotifyMasterRefreshToken(token: String) {
+        connect().insertInto(TOKEN)
+            .set(TOKEN.ID, "spotify_master")
+            .set(TOKEN.VALUE, token)
+            .onDuplicateKeyUpdate()
+            .set(TOKEN.VALUE, token)
+            .execute()
+    }
+
+    fun getSpotifyMasterRefreshToken(): String? {
+        return connect().selectFrom(TOKEN)
+            .where(TOKEN.ID.eq("spotify_master"))
+            .fetchOne()?.value
+    }
+
     fun getUserRefreshToken(userId: Long): String? {
         return connect().selectFrom(USER)
             .where(USER.ID.eq(userId))
@@ -384,7 +399,7 @@ class Database(private val cache: Cache, private val host: String, private val u
     fun setUserPlaylistHandler(userId: Long, handler: PlaylistHandler?) {
         if(handler != null) {
             connect().update(USER)
-                .set(USER.PLAYLIST_TYPE, "${handler.duration.name};${handler.public};${handler.append}")
+                .set(USER.PLAYLIST_TYPE, "${handler.duration.name};${handler.public};${handler.append};${handler.disabled};${handler.always}")
                 .where(USER.ID.eq(userId))
                 .execute()
         } else {
@@ -396,7 +411,7 @@ class Database(private val cache: Cache, private val host: String, private val u
         }
     }
 
-    fun getUserPlaylistHandler(userId: Long): PlaylistHandler? {
+    fun getUserPlaylistHandler(userId: Long): PlaylistHandler {
         val rec = connect().selectFrom(USER)
             .where(USER.ID.eq(userId))
             .fetchOne()
@@ -404,10 +419,12 @@ class Database(private val cache: Cache, private val host: String, private val u
         if(rec != null && rec.playlistType?.isNotBlank() == true) {
             val arr = rec.playlistType!!.split(";")
             val duration = PlaylistDuration.valueOf(arr[0])
-            return PlaylistHandler(duration, arr[1].toBoolean(), arr[2].toBoolean())
+            return PlaylistHandler(duration, arr[1].toBoolean(), arr[2].toBoolean(), arr[3].toBoolean(), arr[4].toBoolean())
         }
 
-        return null
+        val handler = PlaylistHandler(PlaylistDuration.DAY, true, true, false, false)
+        setUserPlaylistHandler(userId, handler)
+        return handler
     }
 
     fun getUserPlaylistData(userId: Long): String? {
@@ -416,11 +433,18 @@ class Database(private val cache: Cache, private val host: String, private val u
             .fetchOne()?.playlistData
     }
 
-    fun setUserPlaylistData(userId: Long, data: String) {
-        connect().update(USER)
-            .set(USER.PLAYLIST_DATA, data)
-            .where(USER.ID.eq(userId))
-            .execute()
+    fun setUserPlaylistData(userId: Long, data: String?) {
+        if(data != null) {
+            connect().update(USER)
+                .set(USER.PLAYLIST_DATA, data)
+                .where(USER.ID.eq(userId))
+                .execute()
+        } else {
+            connect().update(USER)
+                .setNull(USER.PLAYLIST_DATA)
+                .where(USER.ID.eq(userId))
+                .execute()
+        }
     }
 
     fun removeArtist(artistId: String) {
@@ -433,5 +457,18 @@ class Database(private val cache: Cache, private val host: String, private val u
         connect().deleteFrom(ARTIST)
             .where(ARTIST.ID.`in`(artistIds))
             .execute()
+    }
+
+    fun isUserEnlisted(userId: Long): Boolean {
+        return connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()?.enlisted ?: false
+    }
+
+    fun setUserEnlisted(userId: Long, enlisted: Boolean): Boolean {
+        return connect().update(USER)
+            .set(USER.ENLISTED, enlisted)
+            .where(USER.ID.eq(userId))
+            .execute() == 1
     }
 }

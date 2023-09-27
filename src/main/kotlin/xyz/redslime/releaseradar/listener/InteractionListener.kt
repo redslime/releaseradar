@@ -7,8 +7,8 @@ import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
 import dev.kord.core.on
 import dev.kord.rest.builder.message.modify.embed
 import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.commands
 import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.interactionManager
 import xyz.redslime.releaseradar.success
 import xyz.redslime.releaseradar.util.Timezone
 import kotlin.coroutines.coroutineContext
@@ -26,9 +26,9 @@ class InteractionListener {
     fun register(client: Kord) {
         client.on<ButtonInteractionCreateEvent> {
             this.interaction.data.data.customId.value.let { key ->
-                commands.filter { cmd -> cmd.buttons.containsKey(key) }.forEach { cmd ->
-                    cmd.buttons[key]?.invoke(coroutineContext, this@on.interaction)
-                    cmd.buttons.remove(key)
+                interactionManager.buttons.filter { it.key == key }.forEach { _ ->
+                    interactionManager.buttons[key]?.invoke(coroutineContext, this@on.interaction)
+                    interactionManager.buttons.remove(key)
                 }
             }
         }
@@ -58,8 +58,8 @@ class InteractionListener {
                     }
                     interaction.message.delete()
                 } else {
-                    commands.firstOrNull { cmd -> cmd.selectors.containsKey(selected) }?.let { cmd ->
-                        cmd.selectors.remove(selected)?.invoke(coroutineContext, interaction)
+                    interactionManager.selectors.filter { it.key == selected }.let {
+                        interactionManager.selectors.remove(selected)?.invoke(coroutineContext, interaction)
                     }
                 }
             }

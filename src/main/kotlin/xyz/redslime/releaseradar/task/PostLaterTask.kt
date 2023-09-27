@@ -29,6 +29,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
     private val entries = mutableSetOf<Entry>()
     private val logger = LogManager.getLogger(javaClass)
+    private val ignoreTimezone = false // for debugging
 
     init {
         db.connect().selectFrom(POST_LATER)
@@ -50,13 +51,13 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         // find the timezone where its midnight
         Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
             val userDms = mutableMapOf<Long, MutableList<Album>>()
-            val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
+            val albumIds = entries.filter { it.timezone == timezone || ignoreTimezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
                 logger.info("Found ${albumIds.size} albums to post now")
 
             spotify.getAlbumsBatch(albumIds).forEach { album ->
-                entries.filter { it.timezone == timezone && it.albumId == album.id }.forEach { entry ->
+                entries.filter { (it.timezone == timezone || ignoreTimezone) && it.albumId == album.id }.forEach { entry ->
                     if(entry.dm) {
                         userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
                     } else {
@@ -71,7 +72,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                 val playlistHandler = db.getUserPlaylistHandler(channelId)
                 val user = client.getUser(Snowflake(channelId))
 
-                if(playlistHandler != null) {
+                if(!playlistHandler.disabled && (list.size >= 5 || playlistHandler.always)) {
                     try {
                         user?.let { playlistHandler.postAlbums(it, list) }
                     } catch (ex: Exception) {
@@ -83,7 +84,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                 }
             }
 
-            entries.removeIf { it.timezone == timezone }
+            entries.removeIf { it.timezone == timezone || ignoreTimezone }
             db.clearPostLater(timezone)
         }
     }

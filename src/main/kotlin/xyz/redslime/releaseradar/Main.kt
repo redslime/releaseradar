@@ -7,6 +7,7 @@ import xyz.redslime.releaseradar.command.Command
 import xyz.redslime.releaseradar.data.Cache
 import xyz.redslime.releaseradar.data.Config
 import xyz.redslime.releaseradar.data.Database
+import xyz.redslime.releaseradar.util.InteractionManager
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -23,6 +24,7 @@ val commands: ArrayList<Command> = ArrayList()
 val allowedChannels = mutableListOf(ChannelType.GuildText, ChannelType.GuildNews, ChannelType.PublicGuildThread, ChannelType.PublicNewsThread, ChannelType.PrivateThread)
 var startedAt = 0L
 
+val interactionManager = InteractionManager()
 lateinit var config: Config
 lateinit var discord: DiscordClient
 lateinit var db: Database

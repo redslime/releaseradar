@@ -10,6 +10,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
+import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
 
 
@@ -43,6 +44,11 @@ val POST_LATER: PostLater = PostLater.POST_LATER
  * The table <code>releaseradar.radar_channel</code>.
  */
 val RADAR_CHANNEL: RadarChannel = RadarChannel.RADAR_CHANNEL
+
+/**
+ * The table <code>releaseradar.token</code>.
+ */
+val TOKEN: Token = Token.TOKEN
 
 /**
  * The table <code>releaseradar.user</code>.

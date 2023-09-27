@@ -17,6 +17,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
+import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
 
 
@@ -64,6 +65,11 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
     val RADAR_CHANNEL: RadarChannel get() = RadarChannel.RADAR_CHANNEL
 
     /**
+     * The table <code>releaseradar.token</code>.
+     */
+    val TOKEN: Token get() = Token.TOKEN
+
+    /**
      * The table <code>releaseradar.user</code>.
      */
     val USER: User get() = User.USER
@@ -77,6 +83,7 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
         Info.INFO,
         PostLater.POST_LATER,
         RadarChannel.RADAR_CHANNEL,
+        Token.TOKEN,
         User.USER
     )
 }
