@@ -47,7 +47,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
     }
 
-    private suspend fun runActual(client: Kord) {
+    suspend fun runActual(client: Kord) {
         // find the timezone where its midnight
         Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
             val userDms = mutableMapOf<Long, MutableList<Album>>()
@@ -56,35 +56,49 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             if(albumIds.isNotEmpty())
                 logger.info("Found ${albumIds.size} albums to post now")
 
-            spotify.getAlbumsBatch(albumIds).forEach { album ->
-                entries.filter { (it.timezone == timezone || ignoreTimezone) && it.albumId == album.id }.forEach { entry ->
-                    if(entry.dm) {
-                        userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
-                    } else {
-                        client.getChannel(Snowflake(entry.channelId))?.let { channel ->
-                            postAlbum(album, channel as MessageChannelBehavior, db.getRadarId(channel))
+            try {
+                spotify.getAlbumsBatch(albumIds).forEach { album ->
+                    entries.filter { (it.timezone == timezone || ignoreTimezone) && it.albumId == album.id }
+                        .forEach { entry ->
+                            if (entry.dm) {
+                                userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
+                            } else {
+                                client.getChannel(Snowflake(entry.channelId))?.let { channel ->
+                                    postAlbum(album, channel as MessageChannelBehavior, db.getRadarId(channel))
+                                }
+                            }
                         }
-                    }
                 }
+            } catch (ex: Exception) {
+                logger.error("Error trying to get albums to post reminders for:", ex)
+                return
             }
 
             userDms.forEach { (channelId, list) ->
-                val playlistHandler = db.getUserPlaylistHandler(channelId)
-                val user = client.getUser(Snowflake(channelId))
+                try {
+                    val playlistHandler = db.getUserPlaylistHandler(channelId)
+                    val user = client.getUser(Snowflake(channelId))
 
-                if(!playlistHandler.disabled && (list.size >= 5 || playlistHandler.always)) {
-                    try {
-                        user?.let { playlistHandler.postAlbums(it, list) }
-                    } catch (ex: Exception) {
-                        logger.error("Tried to create/edit playlist for ${user?.username}, failed:", ex)
+                    if (!playlistHandler.disabled && (list.size >= 5 || playlistHandler.always)) {
+                        try {
+                            user?.let { playlistHandler.postAlbums(it, list) }
+                        } catch (ex: Exception) {
+                            logger.error("Tried to create/edit playlist for ${user?.username}, failed:", ex)
+                            sendIndividualLinks(user, list)
+                        } finally {
+                            entries.removeIf { it.channelId == channelId }
+                            db.clearPostLater(channelId)
+                        }
+                    } else {
                         sendIndividualLinks(user, list)
                     }
-                } else {
-                    sendIndividualLinks(user, list)
+                } catch (ex: Exception) {
+                    logger.error("Error trying to determine reminder playlist handler:", ex)
                 }
             }
 
-            entries.removeIf { it.timezone == timezone || ignoreTimezone }
+            // clear up channel reminders
+            entries.removeIf { !it.dm && (it.timezone == timezone || ignoreTimezone) }
             db.clearPostLater(timezone)
         }
     }

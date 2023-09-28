@@ -325,6 +325,13 @@ class Database(private val cache: Cache, private val host: String, private val u
     fun clearPostLater(timezone: Timezone) {
         connect().deleteFrom(POST_LATER)
             .where(POST_LATER.TIMEZONE.eq(timezone.name))
+            .and(POST_LATER.USER_CHANNEL.isFalse)
+            .execute()
+    }
+
+    fun clearPostLater(userId: Long) {
+        connect().deleteFrom(POST_LATER)
+            .where(POST_LATER.CHANNEL_ID.eq(userId))
             .execute()
     }
 
