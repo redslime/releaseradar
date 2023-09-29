@@ -91,6 +91,8 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                         }
                     } else {
                         sendIndividualLinks(user, list)
+                        entries.removeIf { it.channelId == channelId }
+                        db.clearPostLater(channelId)
                     }
                 } catch (ex: Exception) {
                     logger.error("Error trying to determine reminder playlist handler:", ex)
