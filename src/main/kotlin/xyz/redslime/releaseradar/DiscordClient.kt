@@ -63,6 +63,7 @@ class DiscordClient {
         EnlistCommand().register(client)
         ReminderPlaylistCommand().register(client)
         ForceRemindersCommand().register(client)
+        TopCommand().register(client)
     }
 
     private fun registerListeners() {

@@ -107,7 +107,6 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
 
     private suspend fun selectAlways(re: EphemeralMessageInteractionResponse?, fo: EphemeralFollowupMessage?, user: User, duration: PlaylistDuration, append: Boolean, disabled: Boolean) {
         fo?.delete()
-        re?.delete()
 
         var newRe: EphemeralFollowupMessage? = null
         newRe = re?.createEphemeralFollowup {
@@ -127,6 +126,8 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
                 }
             }
         }
+
+        re?.delete()
     }
 
 //    private suspend fun selectPublic() {

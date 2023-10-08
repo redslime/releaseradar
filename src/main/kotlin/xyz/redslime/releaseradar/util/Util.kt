@@ -3,6 +3,7 @@ package xyz.redslime.releaseradar.util
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.entity.Message
+import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.entity.channel.TextChannel
 import kotlinx.datetime.toKotlinInstant
@@ -23,6 +24,7 @@ import java.time.*
 val emojiRegex = Regex("<(a)?:(.*):([0-9]*)>")
 val albumRegex = Regex(".*album/([A-z0-9]{22}).*")
 val trackRegex = Regex(".*track/([A-z0-9]{22}).*")
+val reminderEmoji = ReactionEmoji.Unicode("\u23F0")
 
 fun plural(str: String, count: Int): String {
     return str.plural(count)

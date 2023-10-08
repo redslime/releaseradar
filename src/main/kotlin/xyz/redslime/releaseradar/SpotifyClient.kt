@@ -26,15 +26,16 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     private val shortLinkRegex = Regex(".*spotify.link/.*")
     private val logger = LogManager.getLogger(javaClass)
     private val coroutine = CoroutineScope(Dispatchers.IO)
-    private lateinit var spotify: SpotifyAppApi
     private var job: Job? = null
+
+    lateinit var api: SpotifyAppApi
 
     suspend fun login(): SpotifyClient {
         logger.info("Logging into spotify api....")
-        spotify = spotifyAppApi(spotifyClientId, spotifySecret) {
+        api = spotifyAppApi(spotifyClientId, spotifySecret) {
             options.requestTimeoutMillis = Duration.ofDays(1).toMillis()
         }.build()
-        logger.info(spotify.toString())
+        logger.info(api.toString())
         return this
     }
 
@@ -61,7 +62,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         try {
             albums = withContext(coroutine.coroutineContext) {
                 job = coroutineContext.job
-                spotify.artists.getArtistAlbums(
+                api.artists.getArtistAlbums(
                     artistId, offset = offset * 50,
                     include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
                     market = Market.WS
@@ -139,7 +140,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
             job?.join()
             val uidArtists = withContext(coroutine.coroutineContext) {
                 job = coroutineContext.job
-                spotify.artists.getArtists(*uidList.toTypedArray())
+                api.artists.getArtists(*uidList.toTypedArray())
             }
 
             uidArtists.forEachIndexed { index, artist ->
@@ -164,7 +165,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         job?.join()
         val list = withContext(coroutine.coroutineContext) {
             job = coroutineContext.job
-            spotify.search.searchArtist(name)
+            api.search.searchArtist(name)
         }
         val artists = list.getAllItemsNotNull().filter { !exact || it.name.equals(name, ignoreCase = true) }
 
@@ -191,7 +192,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         job?.join()
         var artists = withContext(coroutine.coroutineContext) {
             job = coroutineContext.job
-            spotify.playlists.getPlaylistTracks(uid).getAllItemsNotNull()
+            api.playlists.getPlaylistTracks(uid).getAllItemsNotNull()
                 .flatMap { it.track?.asTrack?.artists.orEmpty() }
         }
         artists = artists.distinctBy { it.id }
@@ -202,14 +203,14 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         if(albumIds.isEmpty())
             return emptyList()
 
-        return spotify.albums.getAlbums(*albumIds.toTypedArray()).filterNotNull()
+        return api.albums.getAlbums(*albumIds.toTypedArray()).filterNotNull()
     }
 
     suspend fun getAlbumFromTrack(trackId: String): SimpleAlbum? {
-        return spotify.tracks.getTrack(trackId)?.album
+        return api.tracks.getTrack(trackId)?.album
     }
 
     suspend fun getAlbumInstance(albumId: String): Album? {
-        return spotify.albums.getAlbum(albumId, Market.WS)
+        return api.albums.getAlbum(albumId, Market.WS)
     }
 }

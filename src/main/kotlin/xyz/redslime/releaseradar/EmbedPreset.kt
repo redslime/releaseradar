@@ -13,6 +13,7 @@ import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
 import xyz.redslime.releaseradar.listener.InteractionListener.Companion.timezoneCallbacks
 import xyz.redslime.releaseradar.util.Timezone
+import xyz.redslime.releaseradar.util.reminderEmoji
 
 /**
  * @author redslime
@@ -49,7 +50,7 @@ suspend fun postAlbum(album: Album, channel: MessageChannelBehavior, radarId: In
         msg.addReaction(ReactionEmoji.Unicode("\u2764\uFE0F")) // Heart
     }
 
-    msg.addReaction(ReactionEmoji.Unicode("\u23F0")) // Alarm clock
+    msg.addReaction(reminderEmoji) // Alarm clock
 }
 
 suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
