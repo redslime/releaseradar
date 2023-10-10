@@ -24,6 +24,7 @@ import java.time.*
 val emojiRegex = Regex("<(a)?:(.*):([0-9]*)>")
 val albumRegex = Regex(".*album/([A-z0-9]{22}).*")
 val trackRegex = Regex(".*track/([A-z0-9]{22}).*")
+val labelRegex = Regex(".*Label: (.*)")
 val reminderEmoji = ReactionEmoji.Unicode("\u23F0")
 
 fun plural(str: String, count: Int): String {
@@ -66,6 +67,20 @@ fun extractSpotifyLink(msg: Message): String? {
                     return line
                 }
             }
+        }
+    }
+
+    return null
+}
+
+fun extractEmbedArtistTitle(msg: Message): String? {
+    return msg.data.embeds.firstOrNull()?.title?.value
+}
+
+fun extractEmbedLabel(msg: Message): String? {
+    msg.data.embeds.firstOrNull()?.description?.value?.lines()?.forEach { line ->
+        if(line.matches(labelRegex)) {
+            return line.replace(labelRegex, "$1")
         }
     }
 

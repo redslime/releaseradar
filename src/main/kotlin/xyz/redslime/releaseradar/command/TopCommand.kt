@@ -9,6 +9,7 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.boolean
 import dev.kord.rest.builder.interaction.integer
+import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.takeWhile
@@ -17,9 +18,7 @@ import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.cache
 import xyz.redslime.releaseradar.error
 import xyz.redslime.releaseradar.spotify
-import xyz.redslime.releaseradar.util.albumRegex
-import xyz.redslime.releaseradar.util.extractSpotifyLink
-import xyz.redslime.releaseradar.util.reminderEmoji
+import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import kotlin.time.toKotlinDuration
 
@@ -45,6 +44,12 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             maxValue = 180
             minValue = 1
         }
+        builder.string("artist", "Filter by artist") {
+            required = false
+        }
+        builder.string("label", "Filter by label") {
+            required = false
+        }
     }
 
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
@@ -53,12 +58,14 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         val showScore = interaction.command.booleans["scores"] ?: false
         val silent = interaction.command.booleans["silent"] ?: false
         val days = interaction.command.integers["days"] ?: 30
+        val artist = interaction.command.strings["artist"]
+        val label = interaction.command.strings["label"]
+        val radarId = cache.getRadarId(channel.id.asLong())
         val response = if(silent) {
             interaction.deferEphemeralResponse()
         } else {
             interaction.deferPublicResponse()
         }
-        val radarId = cache.getRadarId(channel.id.asLong())
 
         if(radarId == null) {
             response.respond {
@@ -80,6 +87,8 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             ch.getMessagesBefore(lastMessage)
                 .takeWhile { it.timestamp > instant }
                 .filter { it.author == interaction.kord.getSelf() }
+                .filter { artist == null || extractEmbedArtistTitle(it)?.lowercase()?.contains(artist.lowercase()) == true }
+                .filter { label == null || extractEmbedLabel(it)?.trim().equals(label.trim(), ignoreCase = true) }
                 .toList()
                 .forEach { message ->
                     extractSpotifyLink(message)?.let { url ->
@@ -102,7 +111,8 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
 
         val sorted = if(!invert) {
             tracks.toList()
-                .filter { (_, score) -> score.getScore() >= 1 }
+                // don't filter positive scores for artists and labels
+                .filter { (_, score) -> artist != null || label != null || score.getScore() >= 1 }
                 .sortedByDescending { (_, score) -> score.getScore() }
                 .take(20)
                 .toMap()
@@ -126,6 +136,8 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         }
 
         val op = if(invert) "Lowest" else "Top"
+        val artistf = if(artist != null) " $artist" else ""
+        val labl = if(label != null) " $label" else ""
         val data = spotify.api.albums.getAlbums(*sorted.keys.toTypedArray(), market = Market.WS)
         val final = sorted.mapKeys { entry ->
             data.find { it?.id == entry.key }
@@ -134,7 +146,7 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         if(final.isEmpty()) {
             response.respond {
                 embed {
-                    title = "$op tracks of ${channel.mention} (last $days days)"
+                    title = "$op$artistf tracks$labl of ${channel.mention} (last $days days)"
                     description = "None... Start reacting so tracks show up here!"
                 }
             }
@@ -143,7 +155,7 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
 
         response.respond {
             embed {
-                title = "$op ${final.size} tracks of ${channel.mention} (last $days days)"
+                title = "$op ${final.size}$artistf$labl tracks of ${channel.mention} (last $days days)"
                 description = ""
                 thumbnail {
                     url = final.keys.firstOrNull()?.images?.firstOrNull()?.url.toString()
