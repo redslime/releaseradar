@@ -14,7 +14,9 @@ import xyz.redslime.releaseradar.spotify
 import xyz.redslime.releaseradar.toAlbum
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
 import java.time.*
+import java.util.*
 
 /**
  * @author redslime
@@ -25,6 +27,9 @@ val emojiRegex = Regex("<(a)?:(.*):([0-9]*)>")
 val albumRegex = Regex(".*album/([A-z0-9]{22}).*")
 val trackRegex = Regex(".*track/([A-z0-9]{22}).*")
 val labelRegex = Regex(".*Label: (.*)")
+val artistRegex = Regex(".*artist/([A-z0-9]{22}).*")
+val playlistRegex = Regex(".*playlist/([A-z0-9]{22}).*")
+val shortLinkRegex = Regex(".*spotify.link/.*")
 val reminderEmoji = ReactionEmoji.Unicode("\u23F0")
 
 fun plural(str: String, count: Int): String {
@@ -133,4 +138,9 @@ fun resolveShortenedLink(shortenedLink: String, logger: Logger): String? {
             return null
         }
     }
+}
+
+fun formatMilliseconds(milliseconds: Int): String {
+    val format = SimpleDateFormat("mm:ss")
+    return format.format(Date(milliseconds.toLong()))
 }

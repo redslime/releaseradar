@@ -137,3 +137,7 @@ fun String.qapitalize(): String {
 suspend inline fun ApplicationCall.respondCss(builder: CssBuilder.() -> Unit) {
     this.respondText(CssBuilder().apply(builder).toString(), ContentType.Text.CSS)
 }
+
+fun Float.formatPercentage(): String {
+    return String.format("%.0f", this * 100) + "%"
+}

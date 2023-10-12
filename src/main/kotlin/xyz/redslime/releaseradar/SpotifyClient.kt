@@ -10,8 +10,7 @@ import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.exception.TooManyNamesException
-import xyz.redslime.releaseradar.util.NameCacheProvider
-import xyz.redslime.releaseradar.util.resolveShortenedLink
+import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -21,9 +20,6 @@ import java.time.LocalDateTime
  */
 class SpotifyClient(private val spotifyClientId: String, private val spotifySecret: String) {
 
-    private val artistRegex = Regex(".*artist/([A-z0-9]{22}).*")
-    private val playlistRegex = Regex(".*playlist/([A-z0-9]{22}).*")
-    private val shortLinkRegex = Regex(".*spotify.link/.*")
     private val logger = LogManager.getLogger(javaClass)
     private val coroutine = CoroutineScope(Dispatchers.IO)
     private var job: Job? = null

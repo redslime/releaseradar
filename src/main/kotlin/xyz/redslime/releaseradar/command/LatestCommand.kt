@@ -10,7 +10,10 @@ import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.buildAlbum
+import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.spotify
+import xyz.redslime.releaseradar.toAlbum
 
 /**
  * @author redslime
@@ -27,7 +30,7 @@ class LatestCommand : ArtistCommand("latest", "Gets the latest release of the sp
         val album = latest?.toAlbum()
 
         response.respond {
-            embed { buildAlbum(album, this) }
+            embed { buildAlbum(album, this, footer = false) }
         }
     }
 
@@ -36,14 +39,14 @@ class LatestCommand : ArtistCommand("latest", "Gets the latest release of the sp
         val firstAlbum = first?.toAlbum()
 
         val re = response.respond {
-            embed { buildAlbum(firstAlbum, this) }
+            embed { buildAlbum(firstAlbum, this, footer = false) }
         }
 
         artists.stream().skip(1).forEach {
             runBlocking {
                 launch {
                     re.createPublicFollowup {
-                        embed { buildAlbum(spotify.getLatestRelease(it.id)?.toAlbum(), this) }
+                        embed { buildAlbum(spotify.getLatestRelease(it.id)?.toAlbum(), this, footer = false) }
                     }
                 }
             }

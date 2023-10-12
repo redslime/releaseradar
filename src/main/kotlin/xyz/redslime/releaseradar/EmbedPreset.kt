@@ -74,7 +74,7 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
     }
 }
 
-fun buildAlbum(album: Album?, builder: EmbedBuilder) {
+fun buildAlbum(album: Album?, builder: EmbedBuilder, footer: Boolean = true) {
     if(album != null) {
         val artists = album.artists.joinToString(" & ") { it.name }
         val name = album.name
@@ -106,8 +106,10 @@ fun buildAlbum(album: Album?, builder: EmbedBuilder) {
 
         builder.description += "\n\uD83C\uDFB6 [Spotify Link](${album.externalUrls.spotify})"
 
-        builder.footer {
-            text = "Hit ⏰ for a DM when it's out in your timezone"
+        if(footer) {
+            builder.footer {
+                text = "Hit ⏰ for a DM when it's out in your timezone"
+            }
         }
     } else {
         builder.color = EmbedColor.RED.color
