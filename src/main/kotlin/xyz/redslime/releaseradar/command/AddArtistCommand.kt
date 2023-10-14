@@ -2,6 +2,7 @@ package xyz.redslime.releaseradar.command
 
 import com.adamratzman.spotify.models.Artist
 import dev.kord.common.entity.ButtonStyle
+import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.createPublicFollowup
 import dev.kord.core.behavior.interaction.response.respond
@@ -28,6 +29,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
     override suspend fun handleArtist(artist: Artist, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
+        val radarId = db.getRadarId(channel)
         val success = db.addArtistToRadar(artist, channel)
 
         response.respond {
@@ -45,6 +47,15 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                     addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
                         it.message.delete()
                         db.removeArtistFromRadar(artist, channel)
+                    }
+                    addInteractionButton(this, ButtonStyle.Secondary, "Print latest release") {
+                        val re = it.deferEphemeralResponse()
+                        spotify.getLatestRelease(artist.id)?.let {
+                            it.toFullAlbum()?.let {
+                                postAlbum(it, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                            }
+                        }
+                        re.delete()
                     }
                 }
             } else {
