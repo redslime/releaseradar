@@ -30,6 +30,10 @@ class InteractionListener {
                     interactionManager.buttons[key]?.invoke(coroutineContext, this@on.interaction)
                     interactionManager.buttons.remove(key)
                 }
+
+                interactionManager.staticButtons.filter { it.key == key }.forEach { _ ->
+                    interactionManager.staticButtons[key]?.invoke(coroutineContext, this@on.interaction)
+                }
             }
         }
 

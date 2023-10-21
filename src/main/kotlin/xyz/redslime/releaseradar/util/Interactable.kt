@@ -32,6 +32,13 @@ interface Interactable {
         interactionManager.buttons[key] = block
     }
 
+    fun addStaticInteractionButton(key: String, builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null) {
+        builder.interactionButton(style, key) {
+            this.label = label
+            emoji?.let { emoji(it) }
+        }
+    }
+
     fun addSelectOption(builder: StringSelectBuilder, label: String, key: String, block: suspend CoroutineContext.(SelectMenuInteraction) -> Unit) {
         val keyk = "$key-${System.currentTimeMillis().hashCode()}"
         builder.option(label, keyk)

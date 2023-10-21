@@ -13,8 +13,6 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
 import dev.kord.rest.builder.message.create.actionRow
 import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.command.ReminderPlaylistCommand
-import xyz.redslime.releaseradar.commands
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db
 import xyz.redslime.releaseradar.util.Interactable
@@ -47,9 +45,7 @@ class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val a
             }
 
             actionRow {
-                addInteractionButton(this, ButtonStyle.Secondary, "Change playlist settings") { i ->
-                    commands.firstOrNull { it.name == "reminderplaylist" }?.let { (it as ReminderPlaylistCommand).sendPrompt(i) }
-                }
+                addStaticInteractionButton("reminderplaylist", this, ButtonStyle.Secondary, "Change playlist settings")
             }
         } }
         api.shutdown()
