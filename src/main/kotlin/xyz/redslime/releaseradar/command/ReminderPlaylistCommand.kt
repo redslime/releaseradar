@@ -36,6 +36,7 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
     suspend fun sendPrompt(interaction: ActionInteraction) {
         val userId = interaction.user.id.asLong()
         val handler = db.getUserPlaylistHandler(userId)
+        val gid = interaction.hashCode().toString()
         var re: EphemeralMessageInteractionResponse? = null
 
         re = interaction.deferEphemeralResponse().respond {
@@ -46,18 +47,18 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
             actionRow {
                 stringSelect("playlist-duration") {
                     PlaylistDuration.values().forEach { duration ->
-                        addSelectOption(this, duration.getDescription(), duration.name) {
+                        addSelectOption(this, duration.getDescription(), duration.name, groupId = gid) {
                             selectAppend(re, interaction.user, duration)
                         }
                     }
                 }
             }
             actionRow {
-                addInteractionButton(this, ButtonStyle.Danger, "Cancel") {
+                addInteractionButton(this, ButtonStyle.Danger, "Cancel", groupId = gid) {
                     re?.delete()
                 }
 
-                addInteractionButton(this, ButtonStyle.Secondary, "Disable playlist") {
+                addInteractionButton(this, ButtonStyle.Secondary, "Disable playlist", groupId = gid) {
                     re?.delete()
                     val response = it.deferEphemeralResponse()
                     handler.disabled = true

@@ -29,6 +29,7 @@ class InteractionListener {
                 interactionManager.buttons.filter { it.key == key }.forEach { _ ->
                     interactionManager.buttons[key]?.invoke(coroutineContext, this@on.interaction)
                     interactionManager.buttons.remove(key)
+                    key?.split("$")?.getOrNull(0)?.let { removePrefixedListeners(it) }
                 }
 
                 interactionManager.staticButtons.filter { it.key == key }.forEach { _ ->
@@ -65,8 +66,18 @@ class InteractionListener {
                     interactionManager.selectors.filter { it.key == selected }.let {
                         interactionManager.selectors.remove(selected)?.invoke(coroutineContext, interaction)
                     }
+
+                    selected.split("$").getOrNull(0)?.let { removePrefixedListeners(it) }
                 }
             }
         }
+    }
+
+    private fun removePrefixedListeners(prefix: String) {
+        val buttons = interactionManager.buttons.filterKeys { it.startsWith(prefix) }.keys
+        buttons.forEach { interactionManager.buttons.remove(it) }
+
+        val selectors = interactionManager.selectors.filterKeys { it.startsWith(prefix) }.keys
+        selectors.forEach { interactionManager.selectors.remove(it) }
     }
 }

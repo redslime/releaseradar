@@ -22,8 +22,8 @@ import kotlin.coroutines.coroutineContext
  */
 interface Interactable {
 
-    fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null, block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
-        val key = "${label.lowercase()}-${System.currentTimeMillis().hashCode()}"
+    fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null, groupId: String? = "${builder.hashCode()}", block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
+        val key = "$groupId$${label.lowercase()}-${System.currentTimeMillis().hashCode()}"
         builder.interactionButton(style, key) {
             this.label = label
             emoji?.let { emoji(it) }
@@ -39,8 +39,8 @@ interface Interactable {
         }
     }
 
-    fun addSelectOption(builder: StringSelectBuilder, label: String, key: String, block: suspend CoroutineContext.(SelectMenuInteraction) -> Unit) {
-        val keyk = "$key-${System.currentTimeMillis().hashCode()}"
+    fun addSelectOption(builder: StringSelectBuilder, label: String, key: String, groupId: String? = "${builder.hashCode()}", block: suspend CoroutineContext.(SelectMenuInteraction) -> Unit) {
+        val keyk = "$groupId$$key-${System.currentTimeMillis().hashCode()}"
         builder.option(label, keyk)
         interactionManager.selectors[keyk] = block
     }
