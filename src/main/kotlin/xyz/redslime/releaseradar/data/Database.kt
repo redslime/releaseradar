@@ -98,7 +98,7 @@ class Database(private val cache: Cache, private val host: String, private val u
         }
     }
 
-    fun checkArtists(artists: List<SimpleArtist>) {
+    fun checkArtists(artists: Collection<SimpleArtist>) {
         val unknown = artists.filter { cache.findArtistRec(it) == null }.toList()
 
         if(unknown.isEmpty())
@@ -145,7 +145,7 @@ class Database(private val cache: Cache, private val host: String, private val u
         return success == 1
     }
 
-    fun addArtistsToRadar(artists: List<SimpleArtist>, rid: Int): List<SimpleArtist> {
+    fun addArtistsToRadar(artists: Collection<SimpleArtist>, rid: Int): List<SimpleArtist> {
         checkArtists(artists)
 
         val skipped: MutableList<SimpleArtist> = ArrayList()

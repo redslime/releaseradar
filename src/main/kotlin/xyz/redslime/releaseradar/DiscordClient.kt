@@ -1,5 +1,6 @@
 package xyz.redslime.releaseradar
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
@@ -18,6 +19,7 @@ class DiscordClient {
     private lateinit var client: Kord
 
     companion object {
+        var disconnectedGuilds = mutableListOf<Snowflake>()
         lateinit var scanTask: ScanNewTracksTask
         lateinit var postLaterTask: PostLaterTask
     }
@@ -65,6 +67,7 @@ class DiscordClient {
         ForceRemindersCommand().register(client)
         TopCommand().register(client)
         AnalysisCommand().register(client)
+        RebuildCommand().register(client)
     }
 
     private fun registerListeners() {
