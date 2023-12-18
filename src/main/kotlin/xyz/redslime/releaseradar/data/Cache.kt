@@ -132,7 +132,12 @@ class Cache : NameCacheProvider {
     }
 
     fun clearRadar(rid: Int) {
+        val artists = artistRadars.filter { it.radarId == rid }.toList()
         artistRadars.removeIf { it.radarId == rid }
+
+        // clean up abandoned artists
+        val gone = artists.filter { a -> artistRadars.none { it.artistId == a.artistId } }
+        db.removeArtists(gone.mapNotNull { it.artistId })
     }
 
     fun getAllArtistsOnRadars(): List<ArtistRecord> {
