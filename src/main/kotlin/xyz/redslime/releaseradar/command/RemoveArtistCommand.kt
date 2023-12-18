@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
+import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.NameCacheProvider
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
@@ -48,25 +49,25 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
     override suspend fun handleArtists(artists: List<Artist>, response: DeferredMessageInteractionResponseBehavior, unresolved: List<String>, interaction: ChatInputCommandInteraction) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
-        var description = ""
+        val description = ChunkedString()
         val simpleArtists = artists.map { it.toSimpleArtist() }
         val skipped = db.removeArtistsFromRadar(simpleArtists, channel)
         val removed = artists.size - skipped.size
 
         simpleArtists.forEach {  artist ->
             if(!skipped.contains(artist)) {
-                description += ":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))\n"
+                description.add(":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))")
             } else {
-                description += ":x: **${artist.name}** not removed, not on radar?\n"
+                description.add(":x: **${artist.name}** not removed, not on radar?")
             }
         }
 
         unresolved.forEach {
-            description += ":x: **$it** not removed, failed to find artist\n"
+            description.add(":x: **$it** not removed, failed to find artist")
         }
 
         // limit of 4096 chars in a single embed
-        val chunks = description.chunked(4000)
+        val chunks = description.getChunks(4000, "\n")
 
         val re = response.respond {
             embed {

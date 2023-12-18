@@ -14,6 +14,7 @@ import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
@@ -76,7 +77,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
         val radarId = db.getRadarId(channel)
-        var description = ""
+        val description = ChunkedString()
         val simpleArtists = artists.map { it.toSimpleArtist() }
         val skipped = db.addArtistsToRadar(simpleArtists, radarId)
         val actualList = ArrayList(simpleArtists)
@@ -85,19 +86,20 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
 
         simpleArtists.forEach { artist ->
             if(!skipped.contains(artist)) {
-                description += ":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))\n"
+                description.add(":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))")
             } else {
-                description += ":x: **${artist.name}** not added, already on list?\n"
+                description.add(":x: **${artist.name}** not added, already on list?")
             }
         }
 
         unresolved.forEach {
-            description += ":x: **$it** not added, failed to find artist\n"
+            description.add(":x: **$it** not added, failed to find artist")
         }
 
-        val finalDesc = "Added ${pluralPrefixed("artist", added)} to ${channel.mention}:\n\n" + description
-        val chunks = finalDesc.chunked(4000) // limit of 4096 chars in a single embed
-        // TODO: chunk lines so splitting doesnt happen within a single line
+        val finalDesc = ChunkedString()
+        finalDesc.add("Added ${pluralPrefixed("artist", added)} to ${channel.mention}:\n")
+        finalDesc.addAll(description)
+        val chunks = finalDesc.getChunks(4000, "\n") // limit of 4096 chars in a single embed
 
         val re = response.respond {
             embed {
