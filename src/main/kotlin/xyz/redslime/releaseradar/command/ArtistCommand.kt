@@ -51,13 +51,20 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
             return
         }
         if(artists.isEmpty()) {
-            respondErrorEmbed(response, "No artist found")
+            if(isCustomHandle())
+                handleInput(cmd.strings["artist"]!!, response, interaction)
+            else
+                respondErrorEmbed(response, "No artist found")
         } else if(artists.size == 1) {
             val entry = artists.entries.first()
 
             if(entry.value == null) {
-                response.respond {
-                    embed { buildNoSuchArtist(entry.key, this) }
+                if(isCustomHandle()) {
+                    handleInput(cmd.strings["artist"]!!, response, interaction)
+                } else {
+                    response.respond {
+                        embed { buildNoSuchArtist(entry.key, this) }
+                    }
                 }
             } else {
                 handleArtist(entry.value!!, response, interaction)
@@ -85,5 +92,13 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
 
     open fun getNameCacheProvider(interaction: ChatInputCommandInteraction): NameCacheProvider {
         return cache
+    }
+
+    open fun isCustomHandle(): Boolean {
+        return false
+    }
+
+    open suspend fun handleInput(str: String, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
+
     }
 }

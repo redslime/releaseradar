@@ -9,6 +9,7 @@ import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.modify.embed
 import dev.kord.rest.request.RestRequestException
 import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.util.albumRegex
 
 /**
  * @author redslime
@@ -56,5 +57,30 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
         interaction: ChatInputCommandInteraction
     ) {
 
+    }
+
+    override fun isCustomHandle(): Boolean {
+        return true
+    }
+
+    override suspend fun handleInput(str: String, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
+        if(str.matches(albumRegex)) {
+            val channel = getChannelInput(interaction)!!
+            val radarId = db.getRadarId(channel)
+            val id = str.replace(albumRegex, "$1")
+            val album = spotify.getAlbumInstance(id)
+
+            if(album != null) {
+                postAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                response.respond {
+                    embed {
+                        success()
+                        description = "Posted ${album.name} to ${channel.mention}"
+                    }
+                }
+            } else
+                respondErrorEmbed(response, "Failed to find album with id $id")
+        } else
+            respondErrorEmbed(response, "No artist or album id found")
     }
 }
