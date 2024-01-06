@@ -80,11 +80,12 @@ fun EmbedBuilder.warning() {
 }
 
 fun EmbedBuilder.colorize(actual: Int, goal: Int) {
+    success()
+
     if(actual == 0)
         error()
     if(actual < goal)
         warning()
-    success()
 }
 
 fun Channel.getDbId(): Long {
