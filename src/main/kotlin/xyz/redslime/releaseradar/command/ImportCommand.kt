@@ -3,16 +3,25 @@ package xyz.redslime.releaseradar.command
 import com.adamratzman.spotify.SpotifyException
 import com.adamratzman.spotify.models.SimpleArtist
 import dev.kord.common.entity.ButtonStyle
+import dev.kord.core.behavior.interaction.ActionInteractionBehavior
+import dev.kord.core.behavior.interaction.respondPublic
+import dev.kord.core.behavior.interaction.response.createPublicFollowup
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.entity.channel.ResolvedChannel
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
+import dev.kord.core.entity.interaction.followup.PublicFollowupMessage
+import dev.kord.core.entity.interaction.response.MessageInteractionResponse
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
+import dev.kord.rest.builder.message.create.actionRow
+import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.actionRow
 import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.exception.InvalidUrlException
+import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
@@ -46,12 +55,88 @@ class ImportCommand: Command("import", "Import all artists from a playlist into 
             return
         }
 
+        val previewSkipped = artists.filter { cache.isOnRadar(it, radarId) }.toList()
+        val previewAddCount = artists.size - previewSkipped.size
+        var re: MessageInteractionResponse? = null
+        re = response.respond {
+            embed {
+                warning()
+                title = "Importing would add ${pluralPrefixed("artist", previewAddCount)} to ${channel.mention}"
+
+                if(previewSkipped.isNotEmpty())
+                    description = "${pluralPrefixed("artist", previewSkipped.size)} are already on radar"
+            }
+            actionRow {
+                addInteractionButton(this, ButtonStyle.Success, "Confirm import") {
+                    import(artists, channel, radarId, it)
+                }
+                addInteractionButton(this, ButtonStyle.Danger, "Cancel import") {
+                    it.message.delete()
+                }
+                addInteractionButton(this, ButtonStyle.Secondary, "See detailed list") {
+                    val description = ChunkedString()
+
+                    artists.forEach { artist ->
+                        if(!previewSkipped.contains(artist)) {
+                            description.add(":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))")
+                        } else {
+                            description.add(":x: **${artist.name}** not added, already on list?")
+                        }
+                    }
+
+                    val chunks = description.getChunks(4000, "\n") // limit of 4096 chars in a single embed
+                    val messageParts = mutableListOf<PublicFollowupMessage>()
+
+                    val rep = it.respondPublic {
+                        embed {
+                            this.description = chunks[0]
+                        }
+                    }
+
+                    chunks.stream().skip(1).forEach { desc ->
+                        runBlocking {  // todo this ugly
+                            launch {
+                                messageParts.add(rep.createPublicFollowup {
+                                    embed {
+                                        this.description = desc
+                                    }
+                                })
+                            }
+                        }
+                    }
+
+                    rep.createPublicFollowup {
+                        embed {
+                            warning()
+                            title = "Importing would add ${pluralPrefixed("artist", previewAddCount)} to ${channel.mention}"
+
+                            if(previewSkipped.isNotEmpty())
+                                this.description = "${pluralPrefixed("artist", previewSkipped.size)} are already on radar"
+                        }
+                        actionRow {
+                            addInteractionButton(this, ButtonStyle.Success, "Confirm import") {
+                                import(artists, channel, radarId, it)
+                            }
+                            addInteractionButton(this, ButtonStyle.Danger, "Cancel import") {
+                                it.message.delete()
+                                messageParts.forEach { m -> m.delete() }
+                                re!!.delete()
+                                rep.delete()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun import(artists: List<SimpleArtist>, channel: ResolvedChannel, radarId: Int, re: ActionInteractionBehavior) {
         val skipped = db.addArtistsToRadar(artists, radarId)
         val actualList = ArrayList(artists)
         actualList.removeAll(skipped.toSet())
         val actualAdded = artists.size - skipped.size
 
-        response.respond {
+        re.respondPublic {
             embed {
                 success()
                 title = "Added ${pluralPrefixed("artist", actualAdded)} from playlist to ${channel.mention}"
