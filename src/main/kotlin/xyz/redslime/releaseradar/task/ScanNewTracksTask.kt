@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.Timezone
 import xyz.redslime.releaseradar.util.getMillisUntilMidnightNZ
+import xyz.redslime.releaseradar.util.pluralPrefixed
 import xyz.redslime.releaseradar.util.printToDiscord
 import java.time.Duration
 import java.util.*
@@ -51,6 +52,9 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
             val albums = artists.flatMap { spotify.getAlbumsAfter(it.id!!, it.lastRelease) }.toList().distinctBy { it.id }
 
             printToDiscord(client, LOGGER, "New albums found: ${albums.size}")
+            client.editPresence {
+                listening(pluralPrefixed("new release", albums.size))
+            }
 
             albums.forEach { album ->
                 // find radars this needs to be posted in

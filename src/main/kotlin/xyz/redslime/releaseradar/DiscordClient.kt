@@ -9,6 +9,7 @@ import xyz.redslime.releaseradar.command.*
 import xyz.redslime.releaseradar.listener.*
 import xyz.redslime.releaseradar.task.PostLaterTask
 import xyz.redslime.releaseradar.task.ScanNewTracksTask
+import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
  * @author redslime
@@ -34,8 +35,13 @@ class DiscordClient {
         client.login {
             startedAt = System.currentTimeMillis()
             LogManager.getLogger(javaClass).info("Bot logged in!")
+
             @OptIn(PrivilegedIntent::class)
             intents += Intent.MessageContent
+
+            this.presence {
+                listening(pluralPrefixed("new release", postLaterTask.getUniqueAlbumReminders()))
+            }
         }
         return this
     }

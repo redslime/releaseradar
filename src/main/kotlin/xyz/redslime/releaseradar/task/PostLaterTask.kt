@@ -37,6 +37,10 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             .forEach(this::add)
     }
 
+    fun getUniqueAlbumReminders(): Int {
+        return entries.map { e -> e.albumId }.distinct().count()
+    }
+
     override fun run(client: Kord): TimerTask.() -> Unit {
         return {
             runBlocking {
