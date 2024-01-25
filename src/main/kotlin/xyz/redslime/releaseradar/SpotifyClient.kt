@@ -98,7 +98,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
 
     suspend fun findArtists(cache: NameCacheProvider, str: String, useCache: Boolean = true, artistLimit: Int): Map<String, Artist?> {
         val resultMap = HashMap<String, Artist?>()
-        val names = str.split(", ").flatMap { s -> s.split(",") }.toList().toMutableList()
+        val names = str.split(", ").flatMap { s -> s.split(",") }.filter { s -> s.isNotEmpty() }.toMutableList()
         val removeNamesLater = ArrayList<String>()
 
         // process uids first
