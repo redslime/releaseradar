@@ -24,7 +24,12 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
     abstract suspend fun handleArtists(artists: List<Artist>, response: DeferredMessageInteractionResponseBehavior, unresolved: List<String>, interaction: ChatInputCommandInteraction)
 
     override fun addParameters(builder: ChatInputCreateBuilder) {
-        builder.string("artist", "The artist name. Multiple names can be comma seperated. Artist URL is accepted too.") {
+        var desc = "The artist name. Artist URL is accepted too."
+
+        if(!singleOnly)
+            desc += " Multiple names can be comma seperated."
+
+        builder.string("artist", desc) {
             required = true
         }
         addParams(builder)
