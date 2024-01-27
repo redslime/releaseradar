@@ -213,6 +213,26 @@ class Database(private val cache: Cache, private val host: String, private val u
         return skipped
     }
 
+    fun removeArtistIdsFromRadar(artistIds: List<String>, channel: ResolvedChannel): List<String> {
+        val rid = getRadarId(channel)
+        val con = connect()
+        val array = artistIds.map {
+            con.deleteFrom(ARTIST_RADAR)
+                .where(ARTIST_RADAR.RADAR_ID.eq(rid))
+                .and(ARTIST_RADAR.ARTIST_ID.eq(it))
+        }.let { queries -> con.batch(queries).execute() }
+
+        val skipped: List<String> = array.mapIndexed { index, i ->
+            if(i == 0)
+                artistIds[index]
+            else
+                null
+        }.filterNotNull()
+
+        cache.removeArtistsFromRadar(artistIds, rid)
+        return skipped
+    }
+
     fun updateLastCheck(artists: List<ArtistRecord>) {
         val ids = artists.map { it.id!! }
         connect().update(ARTIST)

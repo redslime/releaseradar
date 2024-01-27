@@ -79,7 +79,7 @@ fun extractSpotifyLink(msg: Message): String? {
 }
 
 fun extractEmbedArtistTitle(msg: Message): String? {
-    return msg.data.embeds.firstOrNull()?.title?.value
+    return msg.data.embeds.firstOrNull()?.title?.value?.split("\n")?.get(0)
 }
 
 fun extractEmbedLabel(msg: Message): String? {
@@ -143,4 +143,12 @@ fun resolveShortenedLink(shortenedLink: String, logger: Logger): String? {
 fun formatMilliseconds(milliseconds: Int): String {
     val format = SimpleDateFormat("mm:ss")
     return format.format(Date(milliseconds.toLong()))
+}
+
+fun formatPercent(n1: Int, n2: Int): String {
+    return "${(((n1 * 1f) / (n2 * 1f))*100).toInt()}%"
+}
+
+fun format1(n: Number): String {
+    return String.format("%.1f", n)
 }

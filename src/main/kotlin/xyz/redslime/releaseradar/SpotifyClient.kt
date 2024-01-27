@@ -209,4 +209,12 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     suspend fun getAlbumInstance(albumId: String): Album? {
         return api.albums.getAlbum(albumId, Market.WS)
     }
+
+    suspend fun getArtistsFromUrl(url: String): List<SimpleArtist>? {
+        if(url.matches(albumRegex))
+            return api.albums.getAlbum(url.replace(albumRegex, "$1"))?.artists
+        if(url.matches(trackRegex))
+            return api.tracks.getTrack(url.replace(trackRegex, "$1"))?.artists
+        return null
+    }
 }

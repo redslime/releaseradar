@@ -22,10 +22,11 @@ import kotlin.coroutines.coroutineContext
  */
 interface Interactable {
 
-    fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null, groupId: String? = "${builder.hashCode()}", block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
+    fun addInteractionButton(builder: ActionRowBuilder, style: ButtonStyle, label: String, emoji: ReactionEmoji.Unicode? = null, groupId: String? = "${builder.hashCode()}", disabled: Boolean? = false, block: suspend CoroutineContext.(ButtonInteraction) -> Unit) {
         val key = "$groupId$${label.lowercase()}-${System.currentTimeMillis().hashCode()}"
         builder.interactionButton(style, key) {
             this.label = label
+            this.disabled = disabled
             emoji?.let { emoji(it) }
         }
 

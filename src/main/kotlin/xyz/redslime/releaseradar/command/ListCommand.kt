@@ -39,7 +39,6 @@ class ListCommand : Command("list", "Lists all artists on a radar", perm = Permi
                     description = "Add artists using the /add command!"
                 }
             } else {
-
                 val joined: String = if(ids)
                     artists.map { "${it.key} ([``${it.value}``](https://open.spotify.com/artist/${it.value}))" }.joinToString("\n")
                 else

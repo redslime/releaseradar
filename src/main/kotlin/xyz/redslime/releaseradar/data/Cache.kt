@@ -131,6 +131,21 @@ class Cache : NameCacheProvider {
         return Pair(removed, false)
     }
 
+    fun removeArtistsFromRadar(artistIds: List<String>, rid: Int) {
+        val abandoned = mutableListOf<String>()
+
+        artistIds.forEach { artistId ->
+            artistRadars.removeIf { it.radarId == rid && it.artistId == artistId }
+
+            if(artistRadars.none { it.artistId == artistId }) {
+                artists.removeIf { it.id == artistId }
+                abandoned.add(artistId)
+            }
+        }
+
+        db.removeArtists(abandoned)
+    }
+
     fun clearRadar(rid: Int) {
         val artists = artistRadars.filter { it.radarId == rid }.toList()
         artistRadars.removeIf { it.radarId == rid }

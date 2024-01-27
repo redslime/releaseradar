@@ -67,4 +67,13 @@ abstract class Command(val name: String, val description: String, val perm: Perm
             }
         }
     }
+
+    protected suspend fun checkRadarChannel(radarId: Int?, response: DeferredMessageInteractionResponseBehavior, channel: ResolvedChannel): Boolean {
+        if(radarId == null) {
+            respondErrorEmbed(response, "${channel.mention} is not a radar channel!")
+            return false
+        }
+
+        return true
+    }
 }

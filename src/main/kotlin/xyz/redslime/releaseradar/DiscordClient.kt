@@ -74,6 +74,7 @@ class DiscordClient {
         TopCommand().register(client)
         AnalysisCommand().register(client)
         RebuildCommand().register(client)
+        PruneCommand().register(client)
     }
 
     private fun registerListeners() {

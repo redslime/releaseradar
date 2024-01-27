@@ -67,17 +67,10 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             interaction.deferPublicResponse()
         }
 
-        if(radarId == null) {
-            response.respond {
-                embed {
-                    error()
-                    title = "${channel.mention} is not a radar channel!"
-                }
-            }
+        if(!checkRadarChannel(radarId, response, channel))
             return
-        }
 
-        val reacts = cache.getRadarEmotes(radarId)
+        val reacts = cache.getRadarEmotes(radarId!!)
         val tracks = mutableMapOf<String, Score>()
         val ch = channel.fetchChannel() as MessageChannelBehavior
 
