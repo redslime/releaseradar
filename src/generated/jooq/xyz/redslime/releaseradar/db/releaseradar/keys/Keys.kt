@@ -17,6 +17,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
+import xyz.redslime.releaseradar.db.releaseradar.tables.UserStat
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ConfigChannelRecord
@@ -25,6 +26,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.TokenRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserStatRecord
 
 
 
@@ -48,6 +50,7 @@ val KEY_TOKEN_PRIMARY: UniqueKey<TokenRecord> = Internal.createUniqueKey(Token.T
 val KEY_TOKEN_TOKEN_ID_UINDEX: UniqueKey<TokenRecord> = Internal.createUniqueKey(Token.TOKEN, DSL.name("KEY_token_token_id_uindex"), arrayOf(Token.TOKEN.ID), true)
 val KEY_USER_PRIMARY: UniqueKey<UserRecord> = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_PRIMARY"), arrayOf(User.USER.ID), true)
 val KEY_USER_USER_ID_UINDEX: UniqueKey<UserRecord> = Internal.createUniqueKey(User.USER, DSL.name("KEY_user_user_id_uindex"), arrayOf(User.USER.ID), true)
+val KEY_USER_STAT_PRIMARY: UniqueKey<UserStatRecord> = Internal.createUniqueKey(UserStat.USER_STAT, DSL.name("KEY_user_stat_PRIMARY"), arrayOf(UserStat.USER_STAT.USER_ID, UserStat.USER_STAT.SERVER_ID, UserStat.USER_STAT.ALBUM_ID), true)
 
 // -------------------------------------------------------------------------
 // FOREIGN KEY definitions

@@ -9,6 +9,7 @@ import org.jooq.impl.DSL
 import org.jooq.impl.Internal
 
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
+import xyz.redslime.releaseradar.db.releaseradar.tables.UserStat
 
 
 
@@ -18,3 +19,6 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 
 val RADAR_CHANNEL_RADAR_CHANNEL_CHANNEL_ID_INDEX: Index = Internal.createIndex(DSL.name("radar_channel_channel_id_index"), RadarChannel.RADAR_CHANNEL, arrayOf(RadarChannel.RADAR_CHANNEL.CHANNEL_ID), false)
 val RADAR_CHANNEL_RADAR_CHANNEL_SERVER_ID_INDEX: Index = Internal.createIndex(DSL.name("radar_channel_server_id_index"), RadarChannel.RADAR_CHANNEL, arrayOf(RadarChannel.RADAR_CHANNEL.SERVER_ID), false)
+val USER_STAT_USER_STAT__INDEX: Index = Internal.createIndex(DSL.name("user_stat__index"), UserStat.USER_STAT, arrayOf(UserStat.USER_STAT.SERVER_ID), false)
+val USER_STAT_USER_STAT_USER_ID_INDEX: Index = Internal.createIndex(DSL.name("user_stat_user_id_index"), UserStat.USER_STAT, arrayOf(UserStat.USER_STAT.USER_ID), false)
+val USER_STAT_USER_STAT_USER_ID_SERVER_ID_INDEX: Index = Internal.createIndex(DSL.name("user_stat_user_id_server_id_index"), UserStat.USER_STAT, arrayOf(UserStat.USER_STAT.USER_ID, UserStat.USER_STAT.SERVER_ID), false)

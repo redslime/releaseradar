@@ -78,6 +78,21 @@ fun extractSpotifyLink(msg: Message): String? {
     return null
 }
 
+fun extractAlbumId(msg: Message): String? {
+    msg.data.embeds.forEach {
+        it.url.value?.let { url -> return url } // this handles the standard spotify embed
+        it.description.value?.let { desc -> // and this our custom embed
+            desc.lines().forEach { line ->
+                if (line.matches(albumRegex)) {
+                    return line.replace(albumRegex, "$1")
+                }
+            }
+        }
+    }
+
+    return null
+}
+
 fun extractEmbedArtistTitle(msg: Message): String? {
     return msg.data.embeds.firstOrNull()?.title?.value?.split("\n")?.get(0)
 }

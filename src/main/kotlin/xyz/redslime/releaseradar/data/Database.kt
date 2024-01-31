@@ -2,21 +2,23 @@ package xyz.redslime.releaseradar.data
 
 import com.adamratzman.spotify.models.Artist
 import com.adamratzman.spotify.models.SimpleArtist
+import dev.kord.core.Kord
 import dev.kord.core.entity.channel.Channel
 import dev.kord.core.entity.channel.ResolvedChannel
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toLocalDateTime
 import org.apache.logging.log4j.LogManager
 import org.jooq.DSLContext
 import org.jooq.conf.MappedSchema
 import org.jooq.conf.RenderMapping
 import org.jooq.impl.DSL
-import xyz.redslime.releaseradar.EmbedType
-import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.config
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.*
-import xyz.redslime.releaseradar.getDbId
 import xyz.redslime.releaseradar.playlist.PlaylistDuration
 import xyz.redslime.releaseradar.playlist.PlaylistHandler
 import xyz.redslime.releaseradar.task.PostLaterTask
@@ -497,5 +499,39 @@ class Database(private val cache: Cache, private val host: String, private val u
             .set(USER.ENLISTED, enlisted)
             .where(USER.ID.eq(userId))
             .execute() == 1
+    }
+
+    fun logUserReact(client: Kord, userId: Long, serverId: Long, albumId: String, date: Instant, like: Boolean? = null, dislike: Boolean? = null, heart: Boolean? = null, clock: Boolean? = null) {
+        if(client.selfId.asLong() == userId)
+            return
+
+        var step = connect().insertInto(USER_STAT)
+            .set(USER_STAT.USER_ID, userId)
+            .set(USER_STAT.SERVER_ID, serverId)
+            .set(USER_STAT.ALBUM_ID, albumId)
+
+        if(like != null)
+            step = step.set(USER_STAT.LIKE, like)
+        if(dislike != null)
+            step = step.set(USER_STAT.DISLIKE, dislike)
+        if(heart != null)
+            step = step.set(USER_STAT.HEART, heart)
+        if(clock != null)
+            step = step.set(USER_STAT.CLOCK, clock)
+
+        var on = step.set(USER_STAT.TIMESTAMP, date.toLocalDateTime(TimeZone.UTC).toJavaLocalDateTime())
+            .onDuplicateKeyUpdate()
+            .set(USER_STAT.USER_ID, userId)
+
+        if(like != null)
+            on = on.set(USER_STAT.LIKE, like)
+        if(dislike != null)
+            on = on.set(USER_STAT.DISLIKE, dislike)
+        if(heart != null)
+            on = on.set(USER_STAT.HEART, heart)
+        if(clock != null)
+            on = on.set(USER_STAT.CLOCK, clock)
+
+        on.execute()
     }
 }

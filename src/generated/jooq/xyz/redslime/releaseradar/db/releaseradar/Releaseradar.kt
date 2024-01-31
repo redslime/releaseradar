@@ -19,6 +19,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
+import xyz.redslime.releaseradar.db.releaseradar.tables.UserStat
 
 
 /**
@@ -74,6 +75,11 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
      */
     val USER: User get() = User.USER
 
+    /**
+     * The table <code>releaseradar.user_stat</code>.
+     */
+    val USER_STAT: UserStat get() = UserStat.USER_STAT
+
     public override fun getCatalog(): Catalog = DefaultCatalog.DEFAULT_CATALOG
 
     public override fun getTables(): List<Table<*>> = listOf(
@@ -84,6 +90,7 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
         PostLater.POST_LATER,
         RadarChannel.RADAR_CHANNEL,
         Token.TOKEN,
-        User.USER
+        User.USER,
+        UserStat.USER_STAT
     )
 }

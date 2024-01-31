@@ -12,6 +12,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
+import xyz.redslime.releaseradar.db.releaseradar.tables.UserStat
 
 
 
@@ -54,3 +55,8 @@ val TOKEN: Token = Token.TOKEN
  * The table <code>releaseradar.user</code>.
  */
 val USER: User = User.USER
+
+/**
+ * The table <code>releaseradar.user_stat</code>.
+ */
+val USER_STAT: UserStat = UserStat.USER_STAT
