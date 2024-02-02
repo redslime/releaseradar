@@ -34,9 +34,9 @@ class PruneCommand: Command("prune", "Remove inactive or unpopular artists from 
         val response = interaction.deferPublicResponse()
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
-        val radarId = db.getRadarId(channel)
+        val radarId = cache.getRadarId(channel.getDbId())
 
-        if(!checkRadarChannel(radarId, response, channel))
+        if(!checkRadarChannel(radarId, response, channel) || radarId == null)
             return
 
         // fetch all messages with reacts in radar channel

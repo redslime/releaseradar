@@ -14,11 +14,14 @@ import org.jooq.DSLContext
 import org.jooq.conf.MappedSchema
 import org.jooq.conf.RenderMapping
 import org.jooq.impl.DSL
-import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.EmbedType
+import xyz.redslime.releaseradar.asLong
+import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.*
+import xyz.redslime.releaseradar.getDbId
 import xyz.redslime.releaseradar.playlist.PlaylistDuration
 import xyz.redslime.releaseradar.playlist.PlaylistHandler
 import xyz.redslime.releaseradar.task.PostLaterTask
@@ -216,7 +219,10 @@ class Database(private val cache: Cache, private val host: String, private val u
     }
 
     fun removeArtistIdsFromRadar(artistIds: List<String>, channel: ResolvedChannel): List<String> {
-        val rid = getRadarId(channel)
+        return removeArtistIdsFromRadar(artistIds, getRadarId(channel))
+    }
+
+    fun removeArtistIdsFromRadar(artistIds: List<String>, rid: Int): List<String> {
         val con = connect()
         val array = artistIds.map {
             con.deleteFrom(ARTIST_RADAR)

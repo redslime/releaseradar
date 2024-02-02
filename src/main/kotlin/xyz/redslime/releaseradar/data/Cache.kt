@@ -238,4 +238,27 @@ class Cache : NameCacheProvider {
         val gone = artists.filter { a -> artistRadars.none { it.artistId == a.artistId } }
         db.removeArtists(gone.mapNotNull { it.artistId })
     }
+
+    fun getDuplicatedArtistsInServer(serverId: Long): Map<String, List<Int>> {
+        val radarIds = getRadars(serverId).map { it.id }
+        val artists = artistRadars.filter { radarIds.contains(it.radarId) }
+
+        return artistRadars
+            .filter { radarIds.contains(it.radarId) }
+            .filter { r -> artists.count { r.artistId == it.artistId } > 1 }
+            .groupBy { it.artistId!! }
+            .mapValues { (_, value) -> value.mapNotNull { it.radarId } }
+    }
+
+    fun getDuplicatedArtistsInChannel(serverId: Long, channelId: Long): Map<String, List<Int>> {
+        val rid = getRadarId(channelId)
+        val radarArtists = artistRadars.filter { it.radarId == rid }.mapNotNull { it.artistId }
+        val radarIds = getRadars(serverId).filter { it.channelId != channelId }.map { it.id }
+
+        return artistRadars
+            .filter { radarIds.contains(it.radarId) }
+            .filter { radarArtists.contains(it.artistId) }
+            .groupBy { it.artistId!! }
+            .mapValues { (_, value) -> value.mapNotNull { it.radarId } }
+    }
 }
