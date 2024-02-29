@@ -46,7 +46,8 @@ class WebServer {
         authConsumers[state] = consumer
 
         return getSpotifyAuthorizationUrl(
-            scopes = arrayOf((if(public) SpotifyScope.PlaylistModifyPublic else SpotifyScope.PlaylistModifyPrivate)),
+//            scopes = arrayOf((if(public) SpotifyScope.PlaylistModifyPublic else SpotifyScope.PlaylistModifyPrivate)),
+            scopes = arrayOf(SpotifyScope.PlaylistModifyPublic, SpotifyScope.PlaylistReadCollaborative, SpotifyScope.PlaylistReadPrivate, SpotifyScope.PlaylistModifyPrivate), // spotify api being silly: https://community.spotify.com/t5/Spotify-for-Developers/Web-API-Adding-tracks-to-a-public-playlist-requires-playlist/td-p/5913347
             clientId = config.spotifyClientId,
             redirectUri = config.redirectUrl,
             state = state)
