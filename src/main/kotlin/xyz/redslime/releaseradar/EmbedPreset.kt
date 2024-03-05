@@ -9,8 +9,8 @@ import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.rest.builder.component.option
 import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.actionRow
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.actionRow
+import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.listener.InteractionListener.Companion.timezoneCallbacks
 import xyz.redslime.releaseradar.util.Timezone
 import xyz.redslime.releaseradar.util.reminderEmoji
@@ -76,7 +76,7 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
 
 fun buildAlbum(album: Album?, builder: EmbedBuilder, footer: Boolean = true) {
     if(album != null) {
-        val artists = album.artists.joinToString(" & ") { it.name }
+        val artists = album.artists.filter { it.name != null }.joinToString(" & ") { it.name!! }
         val name = album.name
         val label = album.label
         val releaseDate = album.releaseDate.getFriendly()
@@ -96,7 +96,7 @@ fun buildAlbum(album: Album?, builder: EmbedBuilder, footer: Boolean = true) {
                     val extra = simpleTrack.artists.stream().filter { !album.artists.contains(it) }.toList()
 
                     if(simpleTrack.artists.size > 1 && extra.isNotEmpty()) {
-                        builder.description += "${index+1}. ${simpleTrack.name} (w/ ${extra.joinToString(" & ") { it.name }})\n"
+                        builder.description += "${index+1}. ${simpleTrack.name} (w/ ${extra.filter { it.name != null }.joinToString(" & ") { it.name!! }})\n"
                     } else {
                         builder.description += "${index+1}. ${simpleTrack.name}\n"
                     }

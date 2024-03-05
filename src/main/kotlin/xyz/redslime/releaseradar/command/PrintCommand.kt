@@ -6,7 +6,7 @@ import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionRes
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 import dev.kord.rest.request.RestRequestException
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.albumRegex

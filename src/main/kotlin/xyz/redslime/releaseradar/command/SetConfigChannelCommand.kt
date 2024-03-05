@@ -3,7 +3,7 @@ package xyz.redslime.releaseradar.command
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.*
 
 /**

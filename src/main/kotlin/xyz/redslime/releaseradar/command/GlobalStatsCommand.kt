@@ -3,7 +3,7 @@ package xyz.redslime.releaseradar.command
 import dev.kord.core.behavior.interaction.respondEphemeral
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.flow.count
 import xyz.redslime.releaseradar.cache
 import xyz.redslime.releaseradar.prettyPrint

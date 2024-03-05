@@ -5,7 +5,7 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
 import dev.kord.core.on
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.db
 import xyz.redslime.releaseradar.interactionManager

@@ -11,7 +11,7 @@ import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
-import dev.kord.rest.builder.message.create.actionRow
+import dev.kord.rest.builder.message.actionRow
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db

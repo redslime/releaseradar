@@ -11,9 +11,8 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.boolean
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.create.embed
-import dev.kord.rest.builder.message.modify.actionRow
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.actionRow
+import dev.kord.rest.builder.message.embed
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.formatPercentage
 import xyz.redslime.releaseradar.interactionManager
@@ -119,7 +118,7 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
     }
 
     private suspend fun respondAnalysis(response: DeferredMessageInteractionResponseBehavior, track: Track, analysis: AudioFeatures) {
-        val artists = track.artists.joinToString(" & ") { it.name }
+        val artists = track.artists.filter { it.name != null }.joinToString(" & ") { it.name!! }
         val name = track.name
 
         response.respond {

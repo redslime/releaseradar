@@ -1,6 +1,6 @@
 import org.jooq.meta.jaxb.Logging
 
-val kordVersion = "0.9.0"
+val kordVersion = "0.13.1"
 val spotifyVersion = "4.0.0"
 val log4jVersion = "2.20.0"
 val jooqVersion = "3.18.4"
@@ -9,7 +9,7 @@ val emoji4jVersion = "14.0.0"
 val ktorVersion = "2.3.1"
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.9.22"
     id("nu.studer.jooq") version "8.2"
     id("io.ktor.plugin") version "2.3.1"
 }
@@ -30,14 +30,14 @@ dependencies {
     implementation("dev.kord:kord-core:$kordVersion")
     implementation("com.adamratzman:spotify-api-kotlin-core:$spotifyVersion")
     implementation("org.jooq:jooq:$jooqVersion")
-    implementation("com.mysql:mysql-connector-j:8.0.32")
+    implementation("com.mysql:mysql-connector-j:8.2.0")
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("com.sigpwned:emoji4j-core:$emoji4jVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
     implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.568")
-    jooqGenerator("com.mysql:mysql-connector-j:8.0.32")
+    jooqGenerator("com.mysql:mysql-connector-j:8.2.0")
 }
 
 tasks.test {

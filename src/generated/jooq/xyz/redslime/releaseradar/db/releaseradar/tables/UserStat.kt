@@ -4,35 +4,18 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.time.LocalDateTime
-import java.util.function.Function
-
-import kotlin.collections.List
-
-import org.jooq.Field
-import org.jooq.ForeignKey
-import org.jooq.Index
-import org.jooq.Name
-import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row8
-import org.jooq.Schema
-import org.jooq.SelectField
-import org.jooq.Table
-import org.jooq.TableField
-import org.jooq.TableOptions
-import org.jooq.UniqueKey
+import org.jooq.*
 import org.jooq.impl.DSL
 import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
-
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
 import xyz.redslime.releaseradar.db.releaseradar.indexes.USER_STAT_USER_STAT_USER_ID_INDEX
 import xyz.redslime.releaseradar.db.releaseradar.indexes.USER_STAT_USER_STAT_USER_ID_SERVER_ID_INDEX
 import xyz.redslime.releaseradar.db.releaseradar.indexes.USER_STAT_USER_STAT__INDEX
 import xyz.redslime.releaseradar.db.releaseradar.keys.KEY_USER_STAT_PRIMARY
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserStatRecord
+import java.time.LocalDateTime
 
 
 /**
@@ -106,7 +89,7 @@ open class UserStat(
     /**
      * The column <code>releaseradar.user_stat.timestamp</code>.
      */
-    val TIMESTAMP: TableField<UserStatRecord, LocalDateTime?> = createField(DSL.name("timestamp"), SQLDataType.LOCALDATETIME(0).nullable(false).defaultValue(DSL.field(DSL.raw("CURRENT_TIMESTAMP"), SQLDataType.LOCALDATETIME)), this, "")
+    val TIMESTAMP: TableField<UserStatRecord, LocalDateTime?> = createField(DSL.name("timestamp"), SQLDataType.LOCALDATETIME(0).nullable(false), this, "")
 
     private constructor(alias: Name, aliased: Table<UserStatRecord>?): this(alias, null, null, aliased, null)
     private constructor(alias: Name, aliased: Table<UserStatRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)

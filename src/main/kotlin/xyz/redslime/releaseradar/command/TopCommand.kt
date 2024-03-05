@@ -10,7 +10,7 @@ import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.boolean
 import dev.kord.rest.builder.interaction.integer
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
@@ -155,7 +155,7 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
                 }
 
                 final.filter { it.key != null }.onEachIndexed { i, (album, score) ->
-                    val artists = album?.artists?.joinToString(" & ") { it.name }
+                    val artists = album?.artists?.filter { it.name != null }?.joinToString(" & ") { it.name!! }
                     val name = album?.name
                     description += "\n$i. [$artists - $name](${album?.externalUrls?.spotify}) ${score.getFriendly()}"
 

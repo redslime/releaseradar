@@ -8,7 +8,7 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.channel
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.PermissionLevel
 import xyz.redslime.releaseradar.allowedChannels
