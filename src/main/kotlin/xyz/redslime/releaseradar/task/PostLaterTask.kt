@@ -29,7 +29,6 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
     private val entries = mutableSetOf<Entry>()
     private val logger = LogManager.getLogger(javaClass)
-    private val ignoreTimezone = false // for debugging
 
     init {
         db.connect().selectFrom(POST_LATER)
@@ -51,18 +50,20 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
     }
 
-    suspend fun runActual(client: Kord) {
+    suspend fun runActual(client: Kord, tz: Timezone? = null) {
         // find the timezone where its midnight
-        Timezone.values().firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }?.let { timezone ->
+        val tzz = tz ?: Timezone.entries.firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }
+
+        tzz?.let { timezone ->
             val userDms = mutableMapOf<Long, MutableList<Album>>()
-            val albumIds = entries.filter { it.timezone == timezone || ignoreTimezone }.map { it.albumId }.distinct()
+            val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
                 logger.info("Found ${albumIds.size} albums to post now")
 
             try {
                 spotify.getAlbumsBatch(albumIds).forEach { album ->
-                    entries.filter { (it.timezone == timezone || ignoreTimezone) && it.albumId == album.id }
+                    entries.filter { (it.timezone == timezone) && it.albumId == album.id }
                         .forEach { entry ->
                             if (entry.dm) {
                                 userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
@@ -104,7 +105,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             }
 
             // clear up channel reminders
-            entries.removeIf { !it.dm && (it.timezone == timezone || ignoreTimezone) }
+            entries.removeIf { !it.dm && (it.timezone == timezone) }
             db.clearPostLater(timezone)
         }
     }
@@ -147,14 +148,6 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                     content = tracks.map { it.getSmartLink() }.joinToString("\n")
                 }
             }
-
-//            if(albums.size > 1)
-//                it.createMessage("Want to receive a single playlist with all tracks instead? Do ``/reminderplaylist``")
         }
-    }
-
-    fun reset() {
-        db.clearPostLater()
-        entries.clear()
     }
 }
