@@ -29,6 +29,7 @@ class ClearCommand : Command("clear", "Clears the entire radar list of the speci
                 warning()
                 title = ":warning: Are you sure?"
                 description = "Clearing the radar list of ${channel.mention} will remove all artists from the radar!\n" +
+                        "This also clears the exclude list.\n" +
                         "This action can not be undone!"
             }
             actionRow {

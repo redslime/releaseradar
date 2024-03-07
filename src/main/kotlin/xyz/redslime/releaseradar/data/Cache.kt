@@ -5,6 +5,7 @@ import com.adamratzman.spotify.models.SimpleArtist
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
 import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarExcludeRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
@@ -22,6 +23,7 @@ class Cache : NameCacheProvider {
     private val artists: MutableList<ArtistRecord> = ArrayList()
     val configChannels: MutableMap<Long, Long> = HashMap()
     private val artistRadars: MutableList<ArtistRadarRecord> = ArrayList()
+    private val artistRadarExcludes: MutableList<ArtistRadarExcludeRecord> = ArrayList()
 
     fun findArtistRec(artist: SimpleArtist): ArtistRecord? {
         return artists.firstOrNull { it.id!! == artist.id }
@@ -60,6 +62,16 @@ class Cache : NameCacheProvider {
             .associate { it.first!! to it.second }
     }
 
+    fun getExcludedArtistNamesFromRadarChannel(channel: Channel): Map<String, String> {
+        val radarId = db.getRadarId(channel)
+        return artistRadarExcludes
+            .filter { rec -> rec.radarId == radarId }
+            .map { rec -> getArtistName(rec.artistId) to rec.artistId!! }
+            .filter { it.first != null }
+            .sortedBy { it.first!!.lowercase() }
+            .associate { it.first!! to it.second }
+    }
+
     fun isOnRadar(artist: Artist, channel: Channel): Boolean {
         return isOnRadar(artist.toSimpleArtist(), channel)
     }
@@ -71,6 +83,10 @@ class Cache : NameCacheProvider {
 
     fun isOnRadar(artist: SimpleArtist, radarId: Int): Boolean {
         return artistRadars.any { it.artistId == artist.id && it.radarId == radarId}
+    }
+
+    fun isExcludedFromRadar(artist: SimpleArtist, radarId: Int): Boolean {
+        return artistRadarExcludes.any { it.artistId == artist.id && it.radarId == radarId}
     }
 
     fun getChannelId(radarId: Int): Long? {
@@ -110,6 +126,13 @@ class Cache : NameCacheProvider {
         }
     }
 
+    fun addArtistRadarExcludeRecord(rec: ArtistRadarExcludeRecord) {
+        synchronized(artistRadarExcludes) {
+            if(artistRadarExcludes.none { it.artistId == rec.artistId && it.radarId == rec.radarId })
+                artistRadarExcludes.add(rec)
+        }
+    }
+
     fun removeArtistFromRadar(artist: Artist, rid: Int): Pair<Boolean, Boolean> {
         return removeArtistFromRadar(artist.toSimpleArtist(), rid)
     }
@@ -121,7 +144,20 @@ class Cache : NameCacheProvider {
     fun removeArtistFromRadar(artistId: String, rid: Int): Pair<Boolean, Boolean> {
         val removed = artistRadars.removeIf { it.radarId == rid && it.artistId == artistId }
 
-        if(artistRadars.none { it.artistId == artistId }) {
+        if(isArtistAbandoned(artistId)) {
+            // artist is on no radar anymore, remove it
+            artists.removeIf { it.id == artistId }
+            db.removeArtist(artistId)
+            return Pair(removed, true)
+        }
+
+        return Pair(removed, false)
+    }
+
+    fun includeArtistInRadar(artistId: String, rid: Int): Pair<Boolean, Boolean> {
+        val removed = artistRadarExcludes.removeIf { it.radarId == rid && it.artistId == artistId }
+
+        if(isArtistAbandoned(artistId)) {
             // artist is on no radar anymore, remove it
             artists.removeIf { it.id == artistId }
             db.removeArtist(artistId)
@@ -137,7 +173,7 @@ class Cache : NameCacheProvider {
         artistIds.forEach { artistId ->
             artistRadars.removeIf { it.radarId == rid && it.artistId == artistId }
 
-            if(artistRadars.none { it.artistId == artistId }) {
+            if(isArtistAbandoned(artistId)) {
                 artists.removeIf { it.id == artistId }
                 abandoned.add(artistId)
             }
@@ -147,12 +183,15 @@ class Cache : NameCacheProvider {
     }
 
     fun clearRadar(rid: Int) {
-        val artists = artistRadars.filter { it.radarId == rid }.toList()
+        val artists = artistRadars.filter { it.radarId == rid }.map { it.artistId }.toMutableList()
+        artists.addAll(artistRadarExcludes.filter { it.radarId == rid }.map { it.artistId }.toList())
+
         artistRadars.removeIf { it.radarId == rid }
+        artistRadarExcludes.removeIf { it.radarId == rid }
 
         // clean up abandoned artists
-        val gone = artists.filter { a -> artistRadars.none { it.artistId == a.artistId } }
-        db.removeArtists(gone.mapNotNull { it.artistId })
+        val gone = artists.filter { isArtistAbandoned(it) }
+        db.removeArtists(gone.filterNotNull())
     }
 
     fun getAllArtistsOnRadars(): List<ArtistRecord> {
@@ -161,6 +200,10 @@ class Cache : NameCacheProvider {
 
     fun getAllRadarsWithArtists(artistIds: List<String>): List<Int> {
         return artistRadars.filter { artistIds.contains(it.artistId) }.mapNotNull { it.radarId }.distinct()
+    }
+
+    fun getAllRadarsWithExcludedArtists(artistIds: List<String>): List<Int> {
+        return artistRadarExcludes.filter { artistIds.contains(it.artistId) }.mapNotNull { it.radarId }.distinct()
     }
 
     fun getServerRadarsWithArtist(artist: Artist, serverId: Long): List<Int> {
@@ -235,7 +278,7 @@ class Cache : NameCacheProvider {
         radarChannels.removeIf { it.serverId == serverId }
 
         // clean up abandoned artists
-        val gone = artists.filter { a -> artistRadars.none { it.artistId == a.artistId } }
+        val gone = artists.filter { a -> isArtistAbandoned(a.artistId) }
         db.removeArtists(gone.mapNotNull { it.artistId })
     }
 
@@ -260,5 +303,9 @@ class Cache : NameCacheProvider {
             .filter { radarArtists.contains(it.artistId) }
             .groupBy { it.artistId!! }
             .mapValues { (_, value) -> value.mapNotNull { it.radarId } }
+    }
+
+    fun isArtistAbandoned(artistId: String?): Boolean {
+        return artistRadars.none { it.artistId == artistId } && artistRadarExcludes.none { it.artistId == artistId }
     }
 }

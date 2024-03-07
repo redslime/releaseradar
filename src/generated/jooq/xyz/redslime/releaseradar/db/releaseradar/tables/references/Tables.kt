@@ -6,6 +6,7 @@ package xyz.redslime.releaseradar.db.releaseradar.tables.references
 
 import xyz.redslime.releaseradar.db.releaseradar.tables.Artist
 import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadar
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
@@ -25,6 +26,11 @@ val ARTIST: Artist = Artist.ARTIST
  * The table <code>releaseradar.artist_radar</code>.
  */
 val ARTIST_RADAR: ArtistRadar = ArtistRadar.ARTIST_RADAR
+
+/**
+ * The table <code>releaseradar.artist_radar_exclude</code>.
+ */
+val ARTIST_RADAR_EXCLUDE: ArtistRadarExclude = ArtistRadarExclude.ARTIST_RADAR_EXCLUDE
 
 /**
  * The table <code>releaseradar.config_channel</code>.

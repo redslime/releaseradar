@@ -10,55 +10,63 @@ import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
-import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.util.ChunkedString
-import xyz.redslime.releaseradar.util.NameCacheProvider
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
  * @author redslime
- * @version 2023-05-19
+ * @version 2024-03-05
  */
-class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a release radar for the specified channel", PermissionLevel.CONFIG_CHANNEL, artistLimit = 50) {
+class IncludeArtistCommand: ArtistCommand("include", "Include an artist in a radar which was previously excluded") {
 
     override fun addParams(builder: ChatInputCreateBuilder) {
-        addChannelInput(builder, "The channel the artist should be removed from")
+        addChannelInput(builder, "The channel the artist should be included in")
     }
 
-    override suspend fun handleArtist(artist: Artist, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
+    override suspend fun handleArtist(
+        artist: Artist,
+        response: DeferredMessageInteractionResponseBehavior,
+        interaction: ChatInputCommandInteraction,
+    ) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
         val rid = db.getRadarId(channel)
 
         response.respond {
-            if(db.removeArtistFromRadar(artist, rid)) {
+            if(db.includeArtistInRadar(artist, rid)) {
                 embed {
                     success()
-                    title = "Removed ${artist.name} from radar in ${channel.mention}"
+                    title = "${artist.name} is no longer excluded from radar in ${channel.mention}"
                 }
             } else {
                 embed {
                     error()
-                    title = "There is no artist named ${artist.name} on the radar in ${channel.mention}"
-                    description = "Check who is on the radar using the ``/list`` command!"
+                    title = "There is no artist named ${artist.name} excluded from the radar in ${channel.mention}"
+                    description = "Check who is excluded from the radar using the ``/list excluded`` command!"
                 }
             }
         }
     }
 
-    override suspend fun handleArtists(artists: List<Artist>, response: DeferredMessageInteractionResponseBehavior, unresolved: List<String>, interaction: ChatInputCommandInteraction) {
+    override suspend fun handleArtists(
+        artists: List<Artist>,
+        response: DeferredMessageInteractionResponseBehavior,
+        unresolved: List<String>,
+        interaction: ChatInputCommandInteraction,
+    ) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
+        val rid = db.getRadarId(channel)
         val description = ChunkedString()
         val simpleArtists = artists.map { it.toSimpleArtist() }
-        val skipped = db.removeArtistsFromRadar(simpleArtists, channel)
+        val skipped = db.includeArtistsInRadar(simpleArtists, rid)
         val removed = artists.size - skipped.size
 
         simpleArtists.forEach {  artist ->
             if(!skipped.contains(artist)) {
                 description.add(":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))")
             } else {
-                description.add(":x: **${artist.name}** not removed, not on radar?")
+                description.add(":x: **${artist.name}** not removed, not excluded?")
             }
         }
 
@@ -72,7 +80,7 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
         val re = response.respond {
             embed {
                 colorize(removed, artists.size)
-                this.description = "Removed ${pluralPrefixed("artist", removed)} from ${channel.mention}:\n\n" + chunks[0]
+                this.description = "${pluralPrefixed("artist", removed)} no longer excluded from radar in ${channel.mention}:\n\n" + chunks[0]
             }
         }
 
@@ -85,17 +93,6 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
                         }
                     }
                 }
-            }
-        }
-    }
-
-    override fun getNameCacheProvider(interaction: ChatInputCommandInteraction): NameCacheProvider {
-        return object : NameCacheProvider {
-            override suspend fun findArtistRecByName(name: String, ignoreCase: Boolean): List<ArtistRecord> {
-                // limit the pool of artists to search in to just this channel
-                val channel = interaction.command.channels["channel"]!!
-                return cache.getArtistRecordsInRadarChannel(channel)
-                    .filter { it.name.equals(name, ignoreCase) }
             }
         }
     }

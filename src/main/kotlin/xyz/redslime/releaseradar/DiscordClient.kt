@@ -76,6 +76,9 @@ class DiscordClient {
         RebuildCommand().register(client)
         PruneCommand().register(client)
         DuplicatesCommand().register(client)
+        ExcludeArtistCommand().register(client)
+        IncludeArtistCommand().register(client)
+        ListExcludedCommand().register(client)
     }
 
     private fun registerListeners() {

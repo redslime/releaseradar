@@ -14,7 +14,6 @@ import xyz.redslime.releaseradar.util.pluralPrefixed
 import xyz.redslime.releaseradar.util.printToDiscord
 import java.time.Duration
 import java.util.*
-import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 /**
@@ -35,7 +34,6 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     suspend fun runActual(client: Kord, force: Boolean = false) {
         val lastScan = db.getDurationSinceLastUpdatedTracks()
 
@@ -60,9 +58,15 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                 // find radars this needs to be posted in
                 val artistIds = album.artists.map { it.id }.distinct()
                 val radars = cache.getAllRadarsWithArtists(artistIds)
+                val excludedRadar = cache.getAllRadarsWithExcludedArtists(artistIds)
 
                 radars.forEach { radarId ->
                     cache.getChannelId(radarId)?.also { channelId ->
+                        if(excludedRadar.contains(radarId)) {
+                            LOGGER.info("Not posting ${album.name} since on of the artists is excluded on this radar")
+                            return@also
+                        }
+
                         try {
                             val channel = client.getChannel(Snowflake(channelId)) as MessageChannelBehavior
                             val timezone = cache.getRadarTimezone(radarId)

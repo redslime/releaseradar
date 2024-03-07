@@ -14,9 +14,9 @@ import xyz.redslime.releaseradar.warning
 
 /**
  * @author redslime
- * @version 2023-05-19
+ * @version 2024-03-05
  */
-class ListCommand : Command("list", "Lists all artists on a radar", perm = PermissionLevel.CONFIG_CHANNEL) {
+class ListExcludedCommand: Command("listexcluded", "Lists all excluded artists from the specified radar", perm = PermissionLevel.CONFIG_CHANNEL) {
 
     override fun addParameters(builder: ChatInputCreateBuilder) {
         addChannelInput(builder, "The radar channel to list")
@@ -29,14 +29,14 @@ class ListCommand : Command("list", "Lists all artists on a radar", perm = Permi
         val response = interaction.deferPublicResponse()
         val channel = interaction.command.channels["channel"]!!
         val ids = interaction.command.booleans["ids"] ?: false
-        val artists = cache.getArtistNamesInRadarChannel(channel)
+        val artists = cache.getExcludedArtistNamesFromRadarChannel(channel)
 
         response.respond {
             if(artists.isEmpty()) {
                 embed {
                     warning()
-                    title = "There are no artists on radar in ${channel.mention}"
-                    description = "Add artists using the ``/add`` command!"
+                    title = "There are no artists excluded from the radar in ${channel.mention}"
+                    description = "Exclude artists using the ``/exclude`` command!"
                 }
             } else {
                 val joined: String = if(ids)
@@ -46,7 +46,7 @@ class ListCommand : Command("list", "Lists all artists on a radar", perm = Permi
 
                 embed {
                     success()
-                    title = "Artists on radar in ${channel.mention} (${artists.size}):"
+                    title = "Excluded artists from radar in ${channel.mention} (${artists.size}):"
 
                     if(joined.length <= 4000)
                         description = joined

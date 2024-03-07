@@ -18,6 +18,7 @@ import xyz.redslime.releaseradar.EmbedType
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarExcludeRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.*
@@ -57,6 +58,9 @@ class Database(private val cache: Cache, private val host: String, private val u
         connect().selectFrom(ARTIST_RADAR)
             .fetch()
             .forEach(cache::addArtistRadarRecord)
+        connect().selectFrom(ARTIST_RADAR_EXCLUDE)
+            .fetch()
+            .forEach(cache::addArtistRadarExcludeRecord)
     }
 
     fun connect(): DSLContext {
@@ -125,8 +129,25 @@ class Database(private val cache: Cache, private val host: String, private val u
         recs.forEach { cache.addArtistRecord(it) }
     }
 
-    fun addArtistToRadar(artist: Artist, channel: ResolvedChannel): Boolean {
-        return addArtistToRadar(artist, getRadarId(channel))
+    fun excludeArtistFromRadar(artist: Artist, rid: Int): Boolean {
+        checkArtist(artist)
+        var success: Int
+
+        val rec = connect().newRecord(ARTIST_RADAR_EXCLUDE).apply {
+            artistId = artist.id
+            radarId = rid
+        }
+
+        try {
+            success = rec.insert()
+            rec.refresh()
+        } catch (ex: Exception) {
+            success = 0
+        }
+
+        cache.addArtistRadarExcludeRecord(rec)
+
+        return success == 1
     }
 
     fun addArtistToRadar(artist: Artist, rid: Int): Boolean {
@@ -184,14 +205,60 @@ class Database(private val cache: Cache, private val host: String, private val u
         return skipped
     }
 
-    fun removeArtistFromRadar(artist: Artist, channel: ResolvedChannel): Boolean {
-        val rid = getRadarId(channel)
+    fun excludeArtistsFromRadar(artists: Collection<SimpleArtist>, rid: Int): List<SimpleArtist> {
+        checkArtists(artists)
+
+        val skipped: MutableList<SimpleArtist> = ArrayList()
+        val newArtists = artists.filter { !cache.isExcludedFromRadar(it, rid) }
+        skipped.addAll(artists.filter { cache.isExcludedFromRadar(it, rid) })
+
+        if(newArtists.isEmpty())
+            return skipped
+
+        val con = connect()
+        val recs: List<ArtistRadarExcludeRecord> = newArtists.map { artist ->
+            con.newRecord(ARTIST_RADAR_EXCLUDE).apply {
+                artistId = artist.id
+                radarId = rid
+            }
+        }
+        val array = recs.map {
+            con.insertInto(ARTIST_RADAR_EXCLUDE)
+                .set(it)
+                .onDuplicateKeyIgnore()
+        }.let { queries -> con.batch(queries).execute() }
+
+        skipped.addAll(array.mapIndexed { index, insertCount ->
+            if(insertCount == 0)
+                newArtists[index]
+            else
+                null
+        }.filterNotNull())
+
+        recs.forEach(cache::addArtistRadarExcludeRecord)
+        return skipped
+    }
+
+    fun removeArtistFromRadar(artist: Artist, rid: Int): Boolean {
         val removed = cache.removeArtistFromRadar(artist, rid)
 
         if(removed.first) {
             return connect().deleteFrom(ARTIST_RADAR)
                 .where(ARTIST_RADAR.RADAR_ID.eq(rid))
                 .and(ARTIST_RADAR.ARTIST_ID.eq(artist.id))
+                .execute() == 1 || removed.second
+        }
+
+        return false
+    }
+
+    fun includeArtistInRadar(artist: Artist, rid: Int): Boolean {
+        val removed = cache.includeArtistInRadar(artist.id, rid)
+
+        if(removed.first) {
+            return connect().deleteFrom(ARTIST_RADAR_EXCLUDE)
+                .where(ARTIST_RADAR_EXCLUDE.RADAR_ID.eq(rid))
+                .and(ARTIST_RADAR_EXCLUDE.ARTIST_ID.eq(artist.id))
                 .execute() == 1 || removed.second
         }
 
@@ -215,6 +282,25 @@ class Database(private val cache: Cache, private val host: String, private val u
         }.filterNotNull()
 
         artists.forEach { cache.removeArtistFromRadar(it, rid) }
+        return skipped
+    }
+
+    fun includeArtistsInRadar(artists: List<SimpleArtist>, rid: Int): List<SimpleArtist> {
+        val con = connect()
+        val array = artists.map {
+            con.deleteFrom(ARTIST_RADAR_EXCLUDE)
+                .where(ARTIST_RADAR_EXCLUDE.RADAR_ID.eq(rid))
+                .and(ARTIST_RADAR_EXCLUDE.ARTIST_ID.eq(it.id))
+        }.let { queries -> con.batch(queries).execute() }
+
+        val skipped: List<SimpleArtist> = array.mapIndexed { index, i ->
+            if(i == 0)
+                artists[index]
+            else
+                null
+        }.filterNotNull()
+
+        artists.forEach { cache.includeArtistInRadar(it.id, rid) }
         return skipped
     }
 
@@ -282,6 +368,9 @@ class Database(private val cache: Cache, private val host: String, private val u
     fun clearRadar(radarId: Int) {
         connect().deleteFrom(ARTIST_RADAR)
             .where(ARTIST_RADAR.RADAR_ID.eq(radarId))
+            .execute()
+        connect().deleteFrom(ARTIST_RADAR_EXCLUDE)
+            .where(ARTIST_RADAR_EXCLUDE.RADAR_ID.eq(radarId))
             .execute()
         cache.clearRadar(radarId)
     }

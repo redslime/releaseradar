@@ -11,6 +11,7 @@ import org.jooq.impl.Internal
 
 import xyz.redslime.releaseradar.db.releaseradar.tables.Artist
 import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadar
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
@@ -18,6 +19,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
 import xyz.redslime.releaseradar.db.releaseradar.tables.UserStat
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarExcludeRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ConfigChannelRecord
@@ -38,6 +40,8 @@ val KEY_ARTIST_ARTIST_ID_UINDEX: UniqueKey<ArtistRecord> = Internal.createUnique
 val KEY_ARTIST_PRIMARY: UniqueKey<ArtistRecord> = Internal.createUniqueKey(Artist.ARTIST, DSL.name("KEY_artist_PRIMARY"), arrayOf(Artist.ARTIST.ID), true)
 val KEY_ARTIST_RADAR_ARTIST_RADAR_ARTIST_ID_RADAR_ID_UINDEX: UniqueKey<ArtistRadarRecord> = Internal.createUniqueKey(ArtistRadar.ARTIST_RADAR, DSL.name("KEY_artist_radar_artist_radar_artist_id_radar_id_uindex"), arrayOf(ArtistRadar.ARTIST_RADAR.ARTIST_ID, ArtistRadar.ARTIST_RADAR.RADAR_ID), true)
 val KEY_ARTIST_RADAR_PRIMARY: UniqueKey<ArtistRadarRecord> = Internal.createUniqueKey(ArtistRadar.ARTIST_RADAR, DSL.name("KEY_artist_radar_PRIMARY"), arrayOf(ArtistRadar.ARTIST_RADAR.ARTIST_ID, ArtistRadar.ARTIST_RADAR.RADAR_ID), true)
+val KEY_ARTIST_RADAR_EXCLUDE_ARTIST_RADAR_EXCLUDE_PK: UniqueKey<ArtistRadarExcludeRecord> = Internal.createUniqueKey(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE, DSL.name("KEY_artist_radar_exclude_artist_radar_exclude_pk"), arrayOf(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.RADAR_ID, ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.ARTIST_ID), true)
+val KEY_ARTIST_RADAR_EXCLUDE_PRIMARY: UniqueKey<ArtistRadarExcludeRecord> = Internal.createUniqueKey(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE, DSL.name("KEY_artist_radar_exclude_PRIMARY"), arrayOf(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.ARTIST_ID, ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.RADAR_ID), true)
 val KEY_CONFIG_CHANNEL_CONFIG_CHANNEL_SERVER_ID_UINDEX: UniqueKey<ConfigChannelRecord> = Internal.createUniqueKey(ConfigChannel.CONFIG_CHANNEL, DSL.name("KEY_config_channel_config_channel_server_id_uindex"), arrayOf(ConfigChannel.CONFIG_CHANNEL.SERVER_ID), true)
 val KEY_CONFIG_CHANNEL_PRIMARY: UniqueKey<ConfigChannelRecord> = Internal.createUniqueKey(ConfigChannel.CONFIG_CHANNEL, DSL.name("KEY_config_channel_PRIMARY"), arrayOf(ConfigChannel.CONFIG_CHANNEL.SERVER_ID), true)
 val KEY_INFO_INFO_KEY_UINDEX: UniqueKey<InfoRecord> = Internal.createUniqueKey(Info.INFO, DSL.name("KEY_info_info_key_uindex"), arrayOf(Info.INFO.KEY), true)
@@ -58,3 +62,5 @@ val KEY_USER_STAT_PRIMARY: UniqueKey<UserStatRecord> = Internal.createUniqueKey(
 
 val ARTIST_RADAR_ARTIST_ID_FK: ForeignKey<ArtistRadarRecord, ArtistRecord> = Internal.createForeignKey(ArtistRadar.ARTIST_RADAR, DSL.name("artist_radar_artist_id_fk"), arrayOf(ArtistRadar.ARTIST_RADAR.ARTIST_ID), xyz.redslime.releaseradar.db.releaseradar.keys.KEY_ARTIST_PRIMARY, arrayOf(Artist.ARTIST.ID), true)
 val ARTIST_RADAR_RADAR_CHANNEL_ID_FK: ForeignKey<ArtistRadarRecord, RadarChannelRecord> = Internal.createForeignKey(ArtistRadar.ARTIST_RADAR, DSL.name("artist_radar_radar_channel_id_fk"), arrayOf(ArtistRadar.ARTIST_RADAR.RADAR_ID), xyz.redslime.releaseradar.db.releaseradar.keys.KEY_RADAR_CHANNEL_PRIMARY, arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)
+val ARTIST_RADAR_EXCLUDE_ARTIST_ID_FK: ForeignKey<ArtistRadarExcludeRecord, ArtistRecord> = Internal.createForeignKey(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE, DSL.name("artist_radar_exclude_artist_id_fk"), arrayOf(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.ARTIST_ID), xyz.redslime.releaseradar.db.releaseradar.keys.KEY_ARTIST_PRIMARY, arrayOf(Artist.ARTIST.ID), true)
+val ARTIST_RADAR_EXCLUDE_RADAR_CHANNEL_ID_FK: ForeignKey<ArtistRadarExcludeRecord, RadarChannelRecord> = Internal.createForeignKey(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE, DSL.name("artist_radar_exclude_radar_channel_id_fk"), arrayOf(ArtistRadarExclude.ARTIST_RADAR_EXCLUDE.RADAR_ID), xyz.redslime.releaseradar.db.releaseradar.keys.KEY_RADAR_CHANNEL_PRIMARY, arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)

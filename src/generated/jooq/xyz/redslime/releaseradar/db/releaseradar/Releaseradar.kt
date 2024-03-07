@@ -13,6 +13,7 @@ import org.jooq.impl.SchemaImpl
 import xyz.redslime.releaseradar.db.DefaultCatalog
 import xyz.redslime.releaseradar.db.releaseradar.tables.Artist
 import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadar
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
@@ -44,6 +45,11 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
      * The table <code>releaseradar.artist_radar</code>.
      */
     val ARTIST_RADAR: ArtistRadar get() = ArtistRadar.ARTIST_RADAR
+
+    /**
+     * The table <code>releaseradar.artist_radar_exclude</code>.
+     */
+    val ARTIST_RADAR_EXCLUDE: ArtistRadarExclude get() = ArtistRadarExclude.ARTIST_RADAR_EXCLUDE
 
     /**
      * The table <code>releaseradar.config_channel</code>.
@@ -85,6 +91,7 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
     public override fun getTables(): List<Table<*>> = listOf(
         Artist.ARTIST,
         ArtistRadar.ARTIST_RADAR,
+        ArtistRadarExclude.ARTIST_RADAR_EXCLUDE,
         ConfigChannel.CONFIG_CHANNEL,
         Info.INFO,
         PostLater.POST_LATER,

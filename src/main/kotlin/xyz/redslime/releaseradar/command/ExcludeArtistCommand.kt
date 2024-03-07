@@ -2,7 +2,6 @@ package xyz.redslime.releaseradar.command
 
 import com.adamratzman.spotify.models.Artist
 import dev.kord.common.entity.ButtonStyle
-import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.createPublicFollowup
 import dev.kord.core.behavior.interaction.response.respond
@@ -18,29 +17,34 @@ import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
  * @author redslime
- * @version 2023-05-19
+ * @version 2024-03-05
  */
-class AddArtistCommand : ArtistCommand("add", "Add an artist to the release radar for the specified channel", PermissionLevel.CONFIG_CHANNEL) {
+class ExcludeArtistCommand: ArtistCommand("exclude", "Exclude an artist from a radar", PermissionLevel.CONFIG_CHANNEL) {
 
     override fun addParams(builder: ChatInputCreateBuilder) {
-        addChannelInput(builder, "The channel new releases of the artist should be posted to")
+        addChannelInput(builder, "The radar the artist should be excluded from")
     }
 
-    override suspend fun handleArtist(artist: Artist, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
+    override suspend fun handleArtist(
+        artist: Artist,
+        response: DeferredMessageInteractionResponseBehavior,
+        interaction: ChatInputCommandInteraction,
+    ) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
         val radarId = db.getRadarId(channel)
-        val success = db.addArtistToRadar(artist, radarId)
-        val included = db.includeArtistInRadar(artist, radarId)
+        val success = db.excludeArtistFromRadar(artist, radarId)
+        val removed = db.removeArtistFromRadar(artist, radarId)
 
         response.respond {
             if(success) {
                 embed {
                     success()
-                    description = "Added to release radar in ${channel.mention}"
+                    description = "Excluded from release radar in ${channel.mention}\n" +
+                            "Note: Any releases with ${artist.name} involved will be excluded, even if another artist on the same release is on the radar."
 
-                    if(included)
-                        description += "\n\n:warning: This artist was previously excluded from the radar, is now added."
+                    if(removed)
+                        description += "\n\n:warning: This artist was previously on the radar, is removed now."
 
                     author {
                         name = artist.name
@@ -51,22 +55,13 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                 actionRow {
                     addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
                         it.message.delete()
-                        db.removeArtistFromRadar(artist, radarId)
-                    }
-                    addInteractionButton(this, ButtonStyle.Secondary, "Print latest release") {
-                        val re = it.deferEphemeralResponse()
-                        spotify.getLatestRelease(artist.id)?.let {
-                            it.toFullAlbum()?.let {
-                                postAlbum(it, channel.fetchChannel() as MessageChannelBehavior, radarId)
-                            }
-                        }
-                        re.delete()
+                        db.includeArtistInRadar(artist, radarId)
                     }
                 }
             } else {
                 embed {
                     error()
-                    description = "Failed to add to release radar, perhaps already on the list?"
+                    description = "Failed to add to exclude list, perhaps already on the list?"
                     author {
                         name = artist.name
                         icon = artist.images.firstOrNull()?.url
@@ -77,14 +72,19 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         }
     }
 
-    override suspend fun handleArtists(artists: List<Artist>, response: DeferredMessageInteractionResponseBehavior, unresolved: List<String>, interaction: ChatInputCommandInteraction) {
+    override suspend fun handleArtists(
+        artists: List<Artist>,
+        response: DeferredMessageInteractionResponseBehavior,
+        unresolved: List<String>,
+        interaction: ChatInputCommandInteraction,
+    ) {
         val cmd = interaction.command
         val channel = cmd.channels["channel"]!!
         val radarId = db.getRadarId(channel)
         val description = ChunkedString()
         val simpleArtists = artists.map { it.toSimpleArtist() }
-        val skipped = db.addArtistsToRadar(simpleArtists, radarId)
-        val includedSkipped = db.includeArtistsInRadar(simpleArtists, radarId)
+        val skipped = db.excludeArtistsFromRadar(simpleArtists, radarId)
+        val removedSkipped = db.removeArtistsFromRadar(simpleArtists, channel)
         val actualList = ArrayList(simpleArtists)
         actualList.removeAll(skipped.toSet())
         val added = artists.size - skipped.size
@@ -93,12 +93,12 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
             if(!skipped.contains(artist)) {
                 var line = ":white_check_mark: **${artist.name}** ([``${artist.uri.id}``](${artist.externalUrls.spotify}))"
 
-                if(!includedSkipped.contains(artist))
-                    line += " :warning: _No longer excluded_"
+                if(!removedSkipped.contains(artist))
+                    line += " :warning: _Removed from radar_"
 
                 description.add(line)
             } else {
-                description.add(":x: **${artist.name}** not added, already on list?")
+                description.add(":x: **${artist.name}** not excluded, already on list?")
             }
         }
 
@@ -107,7 +107,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         }
 
         val finalDesc = ChunkedString()
-        finalDesc.add("Added ${pluralPrefixed("artist", added)} to ${channel.mention}:\n")
+        finalDesc.add("Excluded ${pluralPrefixed("artist", added)} from ${channel.mention}:\n")
         finalDesc.addAll(description)
         val chunks = finalDesc.getChunks(4000, "\n") // limit of 4096 chars in a single embed
 
@@ -119,7 +119,7 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
             actionRow {
                 addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
                     it.message.delete()
-                    db.removeArtistsFromRadar(actualList, channel)
+                    db.includeArtistsInRadar(actualList, radarId)
                 }
             }
         }
