@@ -73,7 +73,9 @@ class RebuildCommand: Command("rebuild", "Rebuild a radar from its old releases"
         // fetch artists from spotify
         val albums = mutableSetOf<Album>()
         ids.chunked(50).forEach {
-            albums.addAll(spotify.api.albums.getAlbums(*it.toTypedArray(), market = Market.WS).filterNotNull())
+            albums.addAll(spotify.api { api ->
+                api.albums.getAlbums(*it.toTypedArray(), market = Market.WS).filterNotNull()
+            })
         }
 
         // get artists from albums

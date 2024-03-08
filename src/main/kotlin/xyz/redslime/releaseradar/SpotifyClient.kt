@@ -2,17 +2,24 @@ package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.SpotifyAppApi
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
-import com.adamratzman.spotify.models.*
+import com.adamratzman.spotify.models.Album
+import com.adamratzman.spotify.models.Artist
+import com.adamratzman.spotify.models.SimpleAlbum
+import com.adamratzman.spotify.models.SimpleArtist
 import com.adamratzman.spotify.spotifyAppApi
 import com.adamratzman.spotify.utils.Market
 import io.ktor.client.network.sockets.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.exception.TooManyNamesException
 import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
 /**
  * @author redslime
@@ -21,10 +28,8 @@ import java.time.LocalDateTime
 class SpotifyClient(private val spotifyClientId: String, private val spotifySecret: String) {
 
     private val logger = LogManager.getLogger(javaClass)
-    private val coroutine = CoroutineScope(Dispatchers.IO)
-    private var job: Job? = null
-
-    lateinit var api: SpotifyAppApi
+    private val mutex = Mutex()
+    private lateinit var api: SpotifyAppApi
 
     suspend fun login(): SpotifyClient {
         logger.info("Logging into spotify api....")
@@ -35,8 +40,15 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         return this
     }
 
+    suspend fun <T> api(block: suspend CoroutineContext.(SpotifyAppApi) -> T): T {
+        mutex.withLock {
+            return block.invoke(coroutineContext, api)
+        }
+    }
+
     suspend fun getLatestRelease(artistId: String): SimpleAlbum? {
         val albums = getAllAlbums(artistId)
+        logger.info("(1)$artistId: ${albums.size}")
         albums.sortByDescending { album -> album.getReleaseDate() }
         return albums.firstOrNull()
     }
@@ -44,6 +56,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     suspend fun getAlbumsAfter(artistId: String, date: LocalDateTime?): List<SimpleAlbum> {
         return try {
             val albums = getAllAlbums(artistId)
+            logger.info("(2)$artistId: ${albums.size}")
             albums.filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
         } catch(ex: ConnectTimeoutException) {
             logger.error("Connection timed out trying to get albums for $artistId after $date, trying again", ex)
@@ -51,49 +64,20 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         }
     }
 
-    suspend fun getAllAlbums(artistId: String, offset: Int = 0): ArrayList<SimpleAlbum> {
-        job?.join()
-        val albums: PagingObject<SimpleAlbum>
-
-        try {
-            albums = withContext(coroutine.coroutineContext) {
-                job = coroutineContext.job
-                api.artists.getArtistAlbums(
-                    artistId, offset = offset * 50,
-                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
-                    market = Market.WS
-                )
-            }
-        } catch(ex: ConnectTimeoutException) {
-            logger.error("Connection timed out trying to get albums for $artistId, trying again", ex)
-            return getAllAlbums(artistId, offset)
-        } catch (ex: CancellationException) {
-            logger.error("Coroutine to get albums for $artistId cancelled, trying again", ex)
-            return getAllAlbums(artistId, offset)
-        }
-
-        logger.info("$artistId: ${albums.size}")
-
-        if (offset == 0 && albums.total == albums.getAllItemsNotNull().size) // spotify api be weird
-            return ArrayList(albums.getAllItemsNotNull())
-
-        val list = ArrayList(albums.getAllItemsNotNull())
-
-        if (albums.total > 50 + (offset * 50)) {
-            val more: ArrayList<SimpleAlbum>
-
+    suspend fun getAllAlbums(artistId: String): MutableList<SimpleAlbum> {
+        return api { api ->
             try {
-                more = getAllAlbums(artistId, offset + 1)
+                return@api api.artists.getArtistAlbums(artistId,
+                    include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
+                    market = Market.WS).getAllItemsNotNull().toMutableList()
             } catch(ex: ConnectTimeoutException) {
-                logger.error("Connection timed out trying to get albums for $artistId (offset $offset), trying again", ex)
-                return getAllAlbums(artistId, offset)
+                logger.error("Connection timed out trying to get albums for $artistId, trying again", ex)
+                getAllAlbums(artistId)
+            } catch (ex: CancellationException) {
+                logger.error("Coroutine to get albums for $artistId cancelled, trying again", ex)
+                getAllAlbums(artistId)
             }
-
-            list.addAll(more)
-            return list
         }
-
-        return list
     }
 
     suspend fun findArtists(cache: NameCacheProvider, str: String, useCache: Boolean = true, artistLimit: Int): Map<String, Artist?> {
@@ -132,11 +116,8 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         // fetch artists by uid list
         if(urlList.isNotEmpty()) {
             val uidList = urlList.map { it.replace(artistRegex, "$1") }
-
-            job?.join()
-            val uidArtists = withContext(coroutine.coroutineContext) {
-                job = coroutineContext.job
-                api.artists.getArtists(*uidList.toTypedArray())
+            val uidArtists = api { api ->
+                return@api api.artists.getArtists(*uidList.toTypedArray())
             }
 
             uidArtists.forEachIndexed { index, artist ->
@@ -158,9 +139,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
     }
 
     suspend fun findArtistByName(name: String, exact: Boolean = true): Artist? {
-        job?.join()
-        val list = withContext(coroutine.coroutineContext) {
-            job = coroutineContext.job
+        val list = api { api ->
             api.search.searchArtist(name)
         }
         val artists = list.getAllItemsNotNull().filter { !exact || it.name.equals(name, ignoreCase = true) }
@@ -185,9 +164,7 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
             throw InvalidUrlException()
 
         val uid = playlistUrl.replace(playlistRegex, "$1")
-        job?.join()
-        var artists = withContext(coroutine.coroutineContext) {
-            job = coroutineContext.job
+        var artists = api { api ->
             api.playlists.getPlaylistTracks(uid).getAllItemsNotNull()
                 .flatMap { it.track?.asTrack?.artists.orEmpty() }
         }
@@ -199,22 +176,32 @@ class SpotifyClient(private val spotifyClientId: String, private val spotifySecr
         if(albumIds.isEmpty())
             return emptyList()
 
-        return api.albums.getAlbums(*albumIds.toTypedArray()).filterNotNull()
+        return api { api ->
+            api.albums.getAlbums(*albumIds.toTypedArray()).filterNotNull()
+        }
     }
 
     suspend fun getAlbumFromTrack(trackId: String): SimpleAlbum? {
-        return api.tracks.getTrack(trackId)?.album
+        return api { api ->
+            api.tracks.getTrack(trackId)?.album
+        }
     }
 
     suspend fun getAlbumInstance(albumId: String): Album? {
-        return api.albums.getAlbum(albumId, Market.WS)
+        return api { api ->
+            api.albums.getAlbum(albumId, Market.WS)
+        }
     }
 
     suspend fun getArtistsFromUrl(url: String): List<SimpleArtist>? {
         if(url.matches(albumRegex))
-            return api.albums.getAlbum(url.replace(albumRegex, "$1"))?.artists
+            return api { api ->
+                api.albums.getAlbum(url.replace(albumRegex, "$1"))?.artists
+            }
         if(url.matches(trackRegex))
-            return api.tracks.getTrack(url.replace(trackRegex, "$1"))?.artists
+            return api { api ->
+                api.tracks.getTrack(url.replace(trackRegex, "$1"))?.artists
+            }
         return null
     }
 }

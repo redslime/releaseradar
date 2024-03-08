@@ -131,7 +131,9 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         val op = if(invert) "Lowest" else "Top"
         val artistf = if(artist != null) " $artist" else ""
         val labl = if(label != null) " $label" else ""
-        val data = spotify.api.albums.getAlbums(*sorted.keys.toTypedArray(), market = Market.WS)
+        val data = spotify.api { api ->
+            api.albums.getAlbums(*sorted.keys.toTypedArray(), market = Market.WS)
+        }
         val final = sorted.mapKeys { entry ->
             data.find { it?.id == entry.key }
         }

@@ -105,8 +105,10 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             }
 
             // clear up channel reminders
-            entries.removeIf { !it.dm && (it.timezone == timezone) }
-            db.clearPostLater(timezone)
+            if(albumIds.isNotEmpty()) {
+                entries.removeIf { !it.dm && (it.timezone == timezone) }
+                db.clearPostLater(timezone)
+            }
         }
     }
 

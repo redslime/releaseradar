@@ -79,7 +79,9 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
 
         if(url.matches(albumRegex)) {
             val id = url.replace(albumRegex, "$1")
-            val album = spotify.api.albums.getAlbum(id, Market.WS)
+            val album = spotify.api { api ->
+                api.albums.getAlbum(id, Market.WS)
+            }
 
             if(album == null) {
                 respondErrorEmbed(response, ":x: Failed to lookup album for the given URL!")
@@ -90,28 +92,38 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
                     return
                 } else {
                     album.tracks.firstOrNull()?.let { track ->
-                        val analysis = spotify.api.tracks.getAudioFeatures(track.id)
+                        val analysis = spotify.api { api ->
+                            api.tracks.getAudioFeatures(track.id)
+                        }
                         respondAnalysis(response, track.toFullTrack(Market.WS)!!, analysis)
                     }
                 }
             }
         } else if(url.matches(trackRegex)) {
             val id = url.replace(trackRegex, "$1")
-            val track = spotify.api.tracks.getTrack(id, Market.WS)
+            val track = spotify.api { api ->
+                api.tracks.getTrack(id, Market.WS)
+            }
 
             if(track == null) {
                 respondErrorEmbed(response, ":x: Failed to lookup track for the given URL!")
             } else {
-                val analysis = spotify.api.tracks.getAudioFeatures(track.id)
+                val analysis = spotify.api { api ->
+                    api.tracks.getAudioFeatures(track.id)
+                }
                 respondAnalysis(response, track, analysis)
             }
         } else {
-            val track = spotify.api.search.searchTrack(url).firstOrNull()
+            val track = spotify.api { api ->
+                api.search.searchTrack(url).firstOrNull()
+            }
 
             if(track == null) {
                 respondErrorEmbed(response, ":x: Failed to find track!")
             } else {
-                val analysis = spotify.api.tracks.getAudioFeatures(track.id)
+                val analysis = spotify.api { api ->
+                    api.tracks.getAudioFeatures(track.id)
+                }
                 respondAnalysis(response, track, analysis)
             }
         }

@@ -52,7 +52,9 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
         }
 
         val desc = ChunkedString()
-        val artists = spotify.api.artists.getArtists(*map.keys.toTypedArray()).filterNotNull().associateBy { it.id }
+        val artists = spotify.api { api ->
+            api.artists.getArtists(*map.keys.toTypedArray()).filterNotNull().associateBy { it.id }
+        }
 
         map.forEach { (artistId, radarIds) ->
             val artist = artists[artistId]
