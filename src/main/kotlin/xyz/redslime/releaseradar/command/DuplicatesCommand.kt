@@ -10,8 +10,6 @@ import dev.kord.core.entity.interaction.followup.PublicFollowupMessage
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.plural
@@ -66,35 +64,28 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
             desc.add("${artist?.name}: ${chs.joinToString(" ")}")
         }
 
-        val chunks = desc.getChunks(4000, "\n") // limit of 4096 chars in a single embed
         val messageParts = mutableListOf<PublicFollowupMessage>()
+        val rep = desc.chunked({ first ->
+            re.respond {
+                embed {
+                    success()
 
-        val rep = re.respond {
-            embed {
-                success()
+                    title = if(channel == null) {
+                        "Duplicated ${plural("artist", map.size)} (${map.size}):"
+                    } else {
+                        "Duplicated ${plural("artist", map.size)} from ${channel.mention} (${map.size}):"
+                    }
 
-                title = if(channel == null) {
-                    "Duplicated ${plural("artist", map.size)} (${map.size}):"
-                } else {
-                    "Duplicated ${plural("artist", map.size)} from ${channel.mention} (${map.size}):"
-                }
-
-                description = chunks[0]
-
-            }
-        }
-
-        chunks.stream().skip(1).forEach { de ->
-            runBlocking {  // todo this ugly
-                launch {
-                    messageParts.add(rep.createPublicFollowup {
-                        embed {
-                            this.description = de
-                        }
-                    })
+                    description = first
                 }
             }
-        }
+        }, { _, first, chunk ->
+            messageParts.add(first.createPublicFollowup {
+                embed {
+                    this.description = chunk
+                }
+            })
+        })
 
         if(channel != null) {
             rep.createPublicFollowup {

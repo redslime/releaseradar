@@ -15,8 +15,6 @@ import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.util.ChunkedString
@@ -82,26 +80,20 @@ class ImportCommand: Command("import", "Import all artists from a playlist into 
                         }
                     }
 
-                    val chunks = description.getChunks(4000, "\n") // limit of 4096 chars in a single embed
                     val messageParts = mutableListOf<PublicFollowupMessage>()
-
-                    val rep = it.respondPublic {
-                        embed {
-                            this.description = chunks[0]
-                        }
-                    }
-
-                    chunks.stream().skip(1).forEach { desc ->
-                        runBlocking {  // todo this ugly
-                            launch {
-                                messageParts.add(rep.createPublicFollowup {
-                                    embed {
-                                        this.description = desc
-                                    }
-                                })
+                    val rep = description.chunked({ first ->
+                        it.respondPublic {
+                            embed {
+                                this.description = first
                             }
                         }
-                    }
+                    }, { _, first, chunk ->
+                        messageParts.add(first.createPublicFollowup {
+                            embed {
+                                this.description = chunk
+                            }
+                        })
+                    })
 
                     rep.createPublicFollowup {
                         embed {

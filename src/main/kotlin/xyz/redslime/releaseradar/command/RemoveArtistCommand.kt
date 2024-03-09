@@ -7,8 +7,6 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.util.ChunkedString
@@ -66,27 +64,20 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
             description.add(":x: **$it** not removed, failed to find artist")
         }
 
-        // limit of 4096 chars in a single embed
-        val chunks = description.getChunks(4000, "\n")
-
-        val re = response.respond {
-            embed {
-                colorize(removed, artists.size)
-                this.description = "Removed ${pluralPrefixed("artist", removed)} from ${channel.mention}:\n\n" + chunks[0]
-            }
-        }
-
-        chunks.stream().skip(1).forEach { desc ->
-            runBlocking {  // todo this ugly
-                launch {
-                    re.createPublicFollowup {
-                        embed {
-                            this.description = desc
-                        }
-                    }
+        description.chunked({ first ->
+            response.respond {
+                embed {
+                    colorize(removed, artists.size)
+                    this.description = "Removed ${pluralPrefixed("artist", removed)} from ${channel.mention}:\n\n" + first
                 }
             }
-        }
+        }, { _, first, chunk ->
+            first.createPublicFollowup {
+                embed {
+                    this.description = chunk
+                }
+            }
+        })
     }
 
     override fun getNameCacheProvider(interaction: ChatInputCommandInteraction): NameCacheProvider {

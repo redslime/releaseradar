@@ -10,8 +10,6 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.pluralPrefixed
@@ -109,31 +107,26 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         val finalDesc = ChunkedString()
         finalDesc.add("Added ${pluralPrefixed("artist", added)} to ${channel.mention}:\n")
         finalDesc.addAll(description)
-        val chunks = finalDesc.getChunks(4000, "\n") // limit of 4096 chars in a single embed
 
-        val re = response.respond {
-            embed {
-                colorize(added, artists.size)
-                this.description = chunks[0]
-            }
-            actionRow {
-                addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
-                    it.message.delete()
-                    db.removeArtistsFromRadar(actualList, channel)
+        finalDesc.chunked({ first ->
+            response.respond {
+                embed {
+                    colorize(added, artists.size)
+                    this.description = first
                 }
-            }
-        }
-
-        chunks.stream().skip(1).forEach { desc ->
-            runBlocking {  // todo this ugly
-                launch {
-                    re.createPublicFollowup {
-                        embed {
-                            this.description = desc
-                        }
+                actionRow {
+                    addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
+                        it.message.delete()
+                        db.removeArtistsFromRadar(actualList, channel)
                     }
                 }
             }
-        }
+        }, { _, first, chunk ->
+            first.createPublicFollowup {
+                embed {
+                    this.description = chunk
+                }
+            }
+        })
     }
 }

@@ -7,8 +7,6 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.pluralPrefixed
@@ -74,26 +72,19 @@ class IncludeArtistCommand: ArtistCommand("include", "Include an artist in a rad
             description.add(":x: **$it** not removed, failed to find artist")
         }
 
-        // limit of 4096 chars in a single embed
-        val chunks = description.getChunks(4000, "\n")
-
-        val re = response.respond {
-            embed {
-                colorize(removed, artists.size)
-                this.description = "${pluralPrefixed("artist", removed)} no longer excluded from radar in ${channel.mention}:\n\n" + chunks[0]
-            }
-        }
-
-        chunks.stream().skip(1).forEach { desc ->
-            runBlocking {  // todo this ugly
-                launch {
-                    re.createPublicFollowup {
-                        embed {
-                            this.description = desc
-                        }
-                    }
+        description.chunked({ first ->
+            response.respond {
+                embed {
+                    colorize(removed, artists.size)
+                    this.description = "${pluralPrefixed("artist", removed)} no longer excluded from radar in ${channel.mention}:\n\n" + first
                 }
             }
-        }
+        }, { _, first, chunk ->
+            first.createPublicFollowup {
+                embed {
+                    this.description = chunk
+                }
+            }
+        })
     }
 }
