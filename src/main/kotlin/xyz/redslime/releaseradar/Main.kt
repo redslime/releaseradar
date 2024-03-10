@@ -36,7 +36,7 @@ suspend fun main() {
     config = readConfig()
     cache = Cache()
     db = Database(cache, config.dbHost, config.dbUser, config.dbPassword)
-    spotify = SpotifyClient(config.spotifyClientId, config.spotifySecret).login()
+    spotify = SpotifyClient().login(config.spotifyClientId, config.spotifySecret)
     webServer = WebServer()
 
     thread {
@@ -60,6 +60,14 @@ private fun readConfig(): Config {
     val config = GsonBuilder().create().fromJson(FileInputStream(configFile).bufferedReader(), Config::class.java)
     validateConfig(config)
 
+    return config
+}
+
+fun reloadConfig(): Config {
+    val configFile = File("config.json")
+    val cfg = GsonBuilder().create().fromJson(FileInputStream(configFile).bufferedReader(), Config::class.java)
+    validateConfig(cfg)
+    config = cfg
     return config
 }
 

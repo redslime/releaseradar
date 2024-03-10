@@ -25,13 +25,13 @@ import kotlin.coroutines.coroutineContext
  * @author redslime
  * @version 2023-05-18
  */
-class SpotifyClient(private val spotifyClientId: String, private val spotifySecret: String) {
+class SpotifyClient {
 
     private val logger = LogManager.getLogger(javaClass)
     private val mutex = Mutex()
     private lateinit var api: SpotifyAppApi
 
-    suspend fun login(): SpotifyClient {
+    suspend fun login(spotifyClientId: String, spotifySecret: String): SpotifyClient {
         logger.info("Logging into spotify api....")
         api = spotifyAppApi(spotifyClientId, spotifySecret) {
             options.requestTimeoutMillis = Duration.ofDays(1).toMillis()

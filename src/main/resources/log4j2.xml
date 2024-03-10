@@ -5,7 +5,7 @@
             <PatternLayout pattern="%highlight{%d{yyyy-MM-dd HH:mm:ss.SSS} [%t:%c{1}] %-5level - %msg%n}{INFO=normal}" disableAnsi="false"/>
         </Console>
         <RollingFile name="File" fileName="logs/latest.log"
-                     filePattern="logs/%d{MM-dd-yyyy}.log.gz"
+                     filePattern="logs/%d{yyyy-MM-dd}.log.gz"
                      ignoreExceptions="false">
             <PatternLayout>
                 <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t:%c{1}] %-5level - %msg%n</Pattern>
