@@ -21,6 +21,7 @@ import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarExcludeRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.*
 import xyz.redslime.releaseradar.getDbId
 import xyz.redslime.releaseradar.playlist.PlaylistDuration
@@ -397,6 +398,12 @@ class Database(private val cache: Cache, private val host: String, private val u
         } ?: Duration.ofDays(1)
     }
 
+    fun getUserRecord(userId: Long): UserRecord? {
+        return connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()
+    }
+
     fun getUserTimezone(userId: Long): Timezone? {
         return connect().selectFrom(USER)
             .where(USER.ID.eq(userId))
@@ -628,5 +635,20 @@ class Database(private val cache: Cache, private val host: String, private val u
             on = on.set(USER_STAT.CLOCK, clock)
 
         on.execute()
+    }
+
+    fun isUserSkippingExtended(userId: Long): Boolean {
+        return connect().selectFrom(USER)
+            .where(USER.ID.eq(userId))
+            .fetchOne()?.skipExtended ?: false
+    }
+
+    fun setUserSkippingExtended(userId: Long, value: Boolean) {
+        connect().insertInto(USER)
+            .set(USER.ID, userId)
+            .set(USER.SKIP_EXTENDED, value)
+            .onDuplicateKeyUpdate()
+            .set(USER.SKIP_EXTENDED, value)
+            .execute()
     }
 }

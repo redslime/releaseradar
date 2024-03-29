@@ -15,6 +15,7 @@ import dev.kord.rest.builder.message.actionRow
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
 import xyz.redslime.releaseradar.util.Interactable
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
@@ -24,14 +25,17 @@ import xyz.redslime.releaseradar.util.pluralPrefixed
  */
 class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val append: Boolean, var disabled: Boolean, val always: Boolean): Interactable {
 
-    suspend fun postAlbums(user: User, albums: List<Album>) {
+    suspend fun postAlbums(user: User, userRec: UserRecord?, albums: List<Album>) {
         val api = getClient(user)
         val userId = user.id.asLong()
-        val playlistData = db.getUserPlaylistData(userId)
+        val playlistData = userRec?.playlistData
+        val skipExtended = userRec?.skipExtended ?: false
         val playlistPair = getPlaylist(api, playlistData, userId)
         val playlist = playlistPair.first
         val newPlaylist = playlistPair.second
-        val playables = albums.flatMap { it.tracks.toList() }.mapNotNull { it?.uri?.uri?.toPlayableUri() }.toTypedArray()
+        val playables = albums.flatMap { it.tracks.toList() }.filterNotNull()
+            .filter { !skipExtended || !it.name.lowercase().contains("extended") }
+            .map { it.uri.uri.toPlayableUri() }.toTypedArray()
 
         api.playlists.addPlayablesToClientPlaylist(playlist.id, *playables)
         playlist.externalUrls.spotify?.let { user.getDmChannelOrNull()?.createMessage {

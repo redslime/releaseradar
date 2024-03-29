@@ -25,7 +25,7 @@ class ReactListener {
             if(message.author?.id != client.getSelf().id)
                 return@on
 
-            if(this.emoji == ReactionEmoji.Unicode("\u23F0")) {
+            if(this.emoji == reminderEmoji) {
                 extractSpotifyLink(message)?.let {
                     val albumId = it.replace(albumRegex, "$1")
                     addPostLater(it, user)

@@ -82,20 +82,22 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
             userDms.forEach { (channelId, list) ->
                 try {
                     val playlistHandler = db.getUserPlaylistHandler(channelId)
-                    val user = client.getUser(Snowflake(channelId))
+                    val user = client.getUser(Snowflake(channelId)) ?: return
+                    val userRec = db.getUserRecord(user.id.asLong())
+                    val skipExtended = userRec?.skipExtended ?: false
 
                     if (!playlistHandler.disabled && (list.size >= 5 || playlistHandler.always)) {
                         try {
-                            user?.let { playlistHandler.postAlbums(it, list) }
+                            playlistHandler.postAlbums(user, userRec, list)
                         } catch (ex: Exception) {
-                            logger.error("Tried to create/edit playlist for ${user?.username}, failed:", ex)
-                            sendIndividualLinks(user, list)
+                            logger.error("Tried to create/edit playlist for ${user.username}, failed:", ex)
+                            sendIndividualLinks(user, skipExtended, list)
                         } finally {
                             entries.removeIf { it.channelId == channelId }
                             db.clearPostLater(channelId)
                         }
                     } else {
-                        sendIndividualLinks(user, list)
+                        sendIndividualLinks(user, skipExtended, list)
                         entries.removeIf { it.channelId == channelId }
                         db.clearPostLater(channelId)
                     }
@@ -143,11 +145,28 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         return false
     }
 
-    private suspend fun sendIndividualLinks(user: User?, albums: MutableList<Album>) {
-        user?.getDmChannelOrNull()?.let {
-            albums.chunked(5).forEach { tracks ->
+    private suspend fun sendIndividualLinks(user: User, skipExtended: Boolean, albums: MutableList<Album>) {
+        val links = mutableListOf<String>()
+
+        if(skipExtended) {
+            // this makes only sense here if there are 2 tracks on the album, one of them being the extended one
+            albums.forEach { album ->
+                if(album.totalTracks == 2 && album.tracks.count { it?.name?.lowercase()?.contains("extended") == true } == 1) {
+                    album.tracks.filterNotNull().find { !it.name.lowercase().contains("extended") }?.let {
+                        it.externalUrls.spotify?.let { url -> links.add(url) }
+                    }
+                } else {
+                    album.getSmartLink()?.let { links.add(it) }
+                }
+            }
+        } else {
+            albums.mapNotNull { it.getSmartLink() }.forEach { links.add(it) }
+        }
+
+        user.getDmChannelOrNull()?.let {
+            links.chunked(5).forEach { chunk ->
                 it.createMessage {
-                    content = tracks.map { it.getSmartLink() }.joinToString("\n")
+                    content = chunk.joinToString("\n")
                 }
             }
         }

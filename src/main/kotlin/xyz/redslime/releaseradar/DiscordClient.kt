@@ -80,6 +80,7 @@ class DiscordClient {
         IncludeArtistCommand().register(client)
         ListExcludedCommand().register(client)
         ReloadConfigCommand().register(client)
+        SkipExtendedCommand().register(client)
     }
 
     private fun registerListeners() {
