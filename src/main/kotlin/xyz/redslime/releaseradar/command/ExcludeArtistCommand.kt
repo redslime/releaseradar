@@ -46,7 +46,7 @@ class ExcludeArtistCommand: ArtistCommand("exclude", "Exclude an artist from a r
 
                     author {
                         name = artist.name
-                        icon = artist.images.firstOrNull()?.url
+                        icon = artist.images?.firstOrNull()?.url
                         url = artist.externalUrls.spotify
                     }
                 }
@@ -62,7 +62,7 @@ class ExcludeArtistCommand: ArtistCommand("exclude", "Exclude an artist from a r
                     description = "Failed to add to exclude list, perhaps already on the list?"
                     author {
                         name = artist.name
-                        icon = artist.images.firstOrNull()?.url
+                        icon = artist.images?.firstOrNull()?.url
                         url = artist.externalUrls.spotify
                     }
                 }

@@ -137,7 +137,7 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
             embed {
                 title = "Audio Analysis\n$artists - $name"
                 thumbnail {
-                    url = track.album.images[0].url
+                    url = track.album.images?.get(0)?.url ?: ""
                 }
 
                 description = "\n\uD83C\uDFB8 **Acousticness**: ${analysis.acousticness.formatPercentage()}"

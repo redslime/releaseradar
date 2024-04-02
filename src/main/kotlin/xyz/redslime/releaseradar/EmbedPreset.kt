@@ -84,7 +84,7 @@ fun buildAlbum(album: Album?, builder: EmbedBuilder, footer: Boolean = true) {
         builder.color = EmbedColor.GREEN.color
         builder.title = "$artists\n$name"
         builder.thumbnail {
-            url = album.images[0].url
+            url = album.images?.get(0)?.url ?: ""
         }
         builder.description = "Label: $label\n" +
                 "Release Date: $releaseDate\n"
