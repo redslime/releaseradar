@@ -1,7 +1,7 @@
 import org.jooq.meta.jaxb.Logging
 
 val kordVersion = "0.13.1"
-val spotifyVersion = "4.0.0"
+val spotifyVersion = "4.1.1"
 val log4jVersion = "2.20.0"
 val jooqVersion = "3.18.4"
 val gsonVersion = "2.10.1"
