@@ -1,6 +1,7 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.SpotifyAppApi
+import com.adamratzman.spotify.SpotifyException
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
 import com.adamratzman.spotify.models.Album
 import com.adamratzman.spotify.models.Artist
@@ -60,6 +61,9 @@ class SpotifyClient {
             albums.filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
         } catch(ex: ConnectTimeoutException) {
             logger.error("Connection timed out trying to get albums for $artistId after $date, trying again", ex)
+            getAlbumsAfter(artistId, date)
+        } catch(ex: SpotifyException) {
+            logger.error("Error while trying to get albums for $artistId after $date, trying again", ex)
             getAlbumsAfter(artistId, date)
         }
     }
