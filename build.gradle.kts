@@ -1,12 +1,12 @@
 import org.jooq.meta.jaxb.Logging
 
-val kordVersion = "0.13.1"
-val spotifyVersion = "4.1.1"
-val log4jVersion = "2.20.0"
-val jooqVersion = "3.18.4"
-val gsonVersion = "2.10.1"
-val emoji4jVersion = "14.0.0"
-val ktorVersion = "2.3.1"
+val kordVersion = "0.14.0"
+val spotifyVersion = "4.1.3"
+val log4jVersion = "2.23.1"
+val jooqVersion = "3.19.11"
+val gsonVersion = "2.11.0"
+val emoji4jVersion = "15.1.2"
+val ktorVersion = "2.3.11"
 
 plugins {
     kotlin("jvm") version "1.9.22"
