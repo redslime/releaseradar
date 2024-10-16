@@ -62,6 +62,7 @@ class Database(private val cache: Cache, private val host: String, private val u
         connect().selectFrom(ARTIST_RADAR_EXCLUDE)
             .fetch()
             .forEach(cache::addArtistRadarExcludeRecord)
+        cache.sortArtistPopularity()
     }
 
     fun connect(): DSLContext {

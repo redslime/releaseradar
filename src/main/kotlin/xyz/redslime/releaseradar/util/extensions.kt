@@ -1,7 +1,6 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.*
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
@@ -46,7 +45,7 @@ fun SimpleAlbum.getReleaseDateTime(): LocalDateTime {
 }
 
 suspend fun SimpleAlbum.toAlbum(): Album {
-    return toFullAlbum(Market.WS)!!
+    return spotify.toFullAlbum(this)
 }
 
 fun SimpleAlbum.isReleasedAfter(date: LocalDate): Boolean {
@@ -141,4 +140,9 @@ suspend inline fun ApplicationCall.respondCss(builder: CssBuilder.() -> Unit) {
 
 fun Float.formatPercentage(): String {
     return String.format("%.0f", this * 100) + "%"
+}
+
+fun SpotifyRatelimitedException.getTime(): Long {
+    val time = message?.replace(Regex(".*for ([0-9]*) seconds.*"), "$1")?.toLong()
+    return time ?: 0L
 }

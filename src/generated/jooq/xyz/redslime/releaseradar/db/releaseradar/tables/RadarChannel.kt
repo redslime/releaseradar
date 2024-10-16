@@ -4,20 +4,24 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.util.function.Function
-
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
 import org.jooq.Identity
 import org.jooq.Index
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.Path
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row6
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
@@ -30,8 +34,13 @@ import org.jooq.impl.TableImpl
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
 import xyz.redslime.releaseradar.db.releaseradar.indexes.RADAR_CHANNEL_RADAR_CHANNEL_CHANNEL_ID_INDEX
 import xyz.redslime.releaseradar.db.releaseradar.indexes.RADAR_CHANNEL_RADAR_CHANNEL_SERVER_ID_INDEX
+import xyz.redslime.releaseradar.db.releaseradar.keys.ARTIST_RADAR_EXCLUDE_RADAR_CHANNEL_ID_FK
+import xyz.redslime.releaseradar.db.releaseradar.keys.ARTIST_RADAR_RADAR_CHANNEL_ID_FK
 import xyz.redslime.releaseradar.db.releaseradar.keys.KEY_RADAR_CHANNEL_PRIMARY
 import xyz.redslime.releaseradar.db.releaseradar.keys.KEY_RADAR_CHANNEL_RADAR_CHANNEL_ID_UINDEX
+import xyz.redslime.releaseradar.db.releaseradar.tables.Artist.ArtistPath
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadar.ArtistRadarPath
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude.ArtistRadarExcludePath
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
 
 
@@ -41,19 +50,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelReco
 @Suppress("UNCHECKED_CAST")
 open class RadarChannel(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, RadarChannelRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, RadarChannelRecord>?,
+    parentPath: InverseForeignKey<out Record, RadarChannelRecord>?,
     aliased: Table<RadarChannelRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<RadarChannelRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -66,7 +79,7 @@ open class RadarChannel(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<RadarChannelRecord> = RadarChannelRecord::class.java
+    override fun getRecordType(): Class<RadarChannelRecord> = RadarChannelRecord::class.java
 
     /**
      * The column <code>releaseradar.radar_channel.id</code>.
@@ -98,8 +111,9 @@ open class RadarChannel(
      */
     val EMOTES: TableField<RadarChannelRecord, String?> = createField(DSL.name("emotes"), SQLDataType.VARCHAR(128), this, "")
 
-    private constructor(alias: Name, aliased: Table<RadarChannelRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<RadarChannelRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<RadarChannelRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<RadarChannelRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<RadarChannelRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.radar_channel</code> table reference
@@ -116,44 +130,137 @@ open class RadarChannel(
      */
     constructor(): this(DSL.name("radar_channel"), null)
 
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, RadarChannelRecord>): this(Internal.createPathAlias(child, key), child, key, RADAR_CHANNEL, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getIndexes(): List<Index> = listOf(RADAR_CHANNEL_RADAR_CHANNEL_CHANNEL_ID_INDEX, RADAR_CHANNEL_RADAR_CHANNEL_SERVER_ID_INDEX)
-    public override fun getIdentity(): Identity<RadarChannelRecord, Int?> = super.getIdentity() as Identity<RadarChannelRecord, Int?>
-    public override fun getPrimaryKey(): UniqueKey<RadarChannelRecord> = KEY_RADAR_CHANNEL_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<RadarChannelRecord>> = listOf(KEY_RADAR_CHANNEL_RADAR_CHANNEL_ID_UINDEX)
-    public override fun `as`(alias: String): RadarChannel = RadarChannel(DSL.name(alias), this)
-    public override fun `as`(alias: Name): RadarChannel = RadarChannel(alias, this)
-    public override fun `as`(alias: Table<*>): RadarChannel = RadarChannel(alias.getQualifiedName(), this)
+    constructor(path: Table<out Record>, childPath: ForeignKey<out Record, RadarChannelRecord>?, parentPath: InverseForeignKey<out Record, RadarChannelRecord>?): this(Internal.createPathAlias(path, childPath, parentPath), path, childPath, parentPath, RADAR_CHANNEL, null, null)
+
+    /**
+     * A subtype implementing {@link Path} for simplified path-based joins.
+     */
+    open class RadarChannelPath : RadarChannel, Path<RadarChannelRecord> {
+        constructor(path: Table<out Record>, childPath: ForeignKey<out Record, RadarChannelRecord>?, parentPath: InverseForeignKey<out Record, RadarChannelRecord>?): super(path, childPath, parentPath)
+        private constructor(alias: Name, aliased: Table<RadarChannelRecord>): super(alias, aliased)
+        override fun `as`(alias: String): RadarChannelPath = RadarChannelPath(DSL.name(alias), this)
+        override fun `as`(alias: Name): RadarChannelPath = RadarChannelPath(alias, this)
+        override fun `as`(alias: Table<*>): RadarChannelPath = RadarChannelPath(alias.qualifiedName, this)
+    }
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getIndexes(): List<Index> = listOf(RADAR_CHANNEL_RADAR_CHANNEL_CHANNEL_ID_INDEX, RADAR_CHANNEL_RADAR_CHANNEL_SERVER_ID_INDEX)
+    override fun getIdentity(): Identity<RadarChannelRecord, Int?> = super.getIdentity() as Identity<RadarChannelRecord, Int?>
+    override fun getPrimaryKey(): UniqueKey<RadarChannelRecord> = KEY_RADAR_CHANNEL_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<RadarChannelRecord>> = listOf(KEY_RADAR_CHANNEL_RADAR_CHANNEL_ID_UINDEX)
+
+    private lateinit var _artistRadarExclude: ArtistRadarExcludePath
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>releaseradar.artist_radar_exclude</code> table
+     */
+    fun artistRadarExclude(): ArtistRadarExcludePath {
+        if (!this::_artistRadarExclude.isInitialized)
+            _artistRadarExclude = ArtistRadarExcludePath(this, null, ARTIST_RADAR_EXCLUDE_RADAR_CHANNEL_ID_FK.inverseKey)
+
+        return _artistRadarExclude;
+    }
+
+    val artistRadarExclude: ArtistRadarExcludePath
+        get(): ArtistRadarExcludePath = artistRadarExclude()
+
+    private lateinit var _artistRadar: ArtistRadarPath
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>releaseradar.artist_radar</code> table
+     */
+    fun artistRadar(): ArtistRadarPath {
+        if (!this::_artistRadar.isInitialized)
+            _artistRadar = ArtistRadarPath(this, null, ARTIST_RADAR_RADAR_CHANNEL_ID_FK.inverseKey)
+
+        return _artistRadar;
+    }
+
+    val artistRadar: ArtistRadarPath
+        get(): ArtistRadarPath = artistRadar()
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>releaseradar.artist</code> table, via the
+     * <code>artist_radar_exclude_artist_id_fk</code> key
+     */
+    val artistRadarExcludeArtistIdFk: ArtistPath
+        get(): ArtistPath = artistRadarExclude().artist()
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>releaseradar.artist</code> table, via the
+     * <code>artist_radar_artist_id_fk</code> key
+     */
+    val artistRadarArtistIdFk: ArtistPath
+        get(): ArtistPath = artistRadar().artist()
+    override fun `as`(alias: String): RadarChannel = RadarChannel(DSL.name(alias), this)
+    override fun `as`(alias: Name): RadarChannel = RadarChannel(alias, this)
+    override fun `as`(alias: Table<*>): RadarChannel = RadarChannel(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): RadarChannel = RadarChannel(DSL.name(name), null)
+    override fun rename(name: String): RadarChannel = RadarChannel(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): RadarChannel = RadarChannel(name, null)
+    override fun rename(name: Name): RadarChannel = RadarChannel(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): RadarChannel = RadarChannel(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row6 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row6<Int?, Long?, Long?, String?, String?, String?> = super.fieldsRow() as Row6<Int?, Long?, Long?, String?, String?, String?>
+    override fun rename(name: Table<*>): RadarChannel = RadarChannel(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (Int?, Long?, Long?, String?, String?, String?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): RadarChannel = RadarChannel(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (Int?, Long?, Long?, String?, String?, String?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): RadarChannel = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): RadarChannel = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): RadarChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): RadarChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): RadarChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): RadarChannel = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): RadarChannel = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): RadarChannel = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): RadarChannel = where(DSL.notExists(select))
 }

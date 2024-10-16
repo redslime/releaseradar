@@ -4,24 +4,26 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.util.function.Function
-
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row7
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
-import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -37,19 +39,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
 @Suppress("UNCHECKED_CAST")
 open class User(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, UserRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, UserRecord>?,
+    parentPath: InverseForeignKey<out Record, UserRecord>?,
     aliased: Table<UserRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<UserRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -62,7 +68,7 @@ open class User(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<UserRecord> = UserRecord::class.java
+    override fun getRecordType(): Class<UserRecord> = UserRecord::class.java
 
     /**
      * The column <code>releaseradar.user.id</code>.
@@ -99,8 +105,9 @@ open class User(
      */
     val SKIP_EXTENDED: TableField<UserRecord, Boolean?> = createField(DSL.name("skip_extended"), SQLDataType.BIT.nullable(false).defaultValue(DSL.inline("b'0'", SQLDataType.BIT)), this, "")
 
-    private constructor(alias: Name, aliased: Table<UserRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<UserRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<UserRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<UserRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<UserRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.user</code> table reference
@@ -116,43 +123,75 @@ open class User(
      * Create a <code>releaseradar.user</code> table reference
      */
     constructor(): this(DSL.name("user"), null)
-
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, UserRecord>): this(Internal.createPathAlias(child, key), child, key, USER, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getPrimaryKey(): UniqueKey<UserRecord> = KEY_USER_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<UserRecord>> = listOf(KEY_USER_USER_ID_UINDEX)
-    public override fun `as`(alias: String): User = User(DSL.name(alias), this)
-    public override fun `as`(alias: Name): User = User(alias, this)
-    public override fun `as`(alias: Table<*>): User = User(alias.getQualifiedName(), this)
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getPrimaryKey(): UniqueKey<UserRecord> = KEY_USER_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<UserRecord>> = listOf(KEY_USER_USER_ID_UINDEX)
+    override fun `as`(alias: String): User = User(DSL.name(alias), this)
+    override fun `as`(alias: Name): User = User(alias, this)
+    override fun `as`(alias: Table<*>): User = User(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): User = User(DSL.name(name), null)
+    override fun rename(name: String): User = User(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): User = User(name, null)
+    override fun rename(name: Name): User = User(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): User = User(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row7 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row7<Long?, String?, String?, String?, String?, Boolean?, Boolean?> = super.fieldsRow() as Row7<Long?, String?, String?, String?, String?, Boolean?, Boolean?>
+    override fun rename(name: Table<*>): User = User(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (Long?, String?, String?, String?, String?, Boolean?, Boolean?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): User = User(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (Long?, String?, String?, String?, String?, Boolean?, Boolean?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): User = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): User = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): User = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): User = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): User = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): User = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): User = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): User = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): User = where(DSL.notExists(select))
 }

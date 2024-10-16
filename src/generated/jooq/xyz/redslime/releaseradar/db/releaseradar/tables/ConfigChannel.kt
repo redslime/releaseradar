@@ -4,24 +4,26 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.util.function.Function
-
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row2
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
-import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -37,19 +39,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ConfigChannelRec
 @Suppress("UNCHECKED_CAST")
 open class ConfigChannel(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, ConfigChannelRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, ConfigChannelRecord>?,
+    parentPath: InverseForeignKey<out Record, ConfigChannelRecord>?,
     aliased: Table<ConfigChannelRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<ConfigChannelRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -62,7 +68,7 @@ open class ConfigChannel(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<ConfigChannelRecord> = ConfigChannelRecord::class.java
+    override fun getRecordType(): Class<ConfigChannelRecord> = ConfigChannelRecord::class.java
 
     /**
      * The column <code>releaseradar.config_channel.server_id</code>.
@@ -74,8 +80,9 @@ open class ConfigChannel(
      */
     val CHANNEL_ID: TableField<ConfigChannelRecord, Long?> = createField(DSL.name("channel_id"), SQLDataType.BIGINT.nullable(false), this, "")
 
-    private constructor(alias: Name, aliased: Table<ConfigChannelRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<ConfigChannelRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<ConfigChannelRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<ConfigChannelRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<ConfigChannelRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.config_channel</code> table
@@ -93,43 +100,75 @@ open class ConfigChannel(
      * Create a <code>releaseradar.config_channel</code> table reference
      */
     constructor(): this(DSL.name("config_channel"), null)
-
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, ConfigChannelRecord>): this(Internal.createPathAlias(child, key), child, key, CONFIG_CHANNEL, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getPrimaryKey(): UniqueKey<ConfigChannelRecord> = KEY_CONFIG_CHANNEL_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<ConfigChannelRecord>> = listOf(KEY_CONFIG_CHANNEL_CONFIG_CHANNEL_SERVER_ID_UINDEX)
-    public override fun `as`(alias: String): ConfigChannel = ConfigChannel(DSL.name(alias), this)
-    public override fun `as`(alias: Name): ConfigChannel = ConfigChannel(alias, this)
-    public override fun `as`(alias: Table<*>): ConfigChannel = ConfigChannel(alias.getQualifiedName(), this)
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getPrimaryKey(): UniqueKey<ConfigChannelRecord> = KEY_CONFIG_CHANNEL_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<ConfigChannelRecord>> = listOf(KEY_CONFIG_CHANNEL_CONFIG_CHANNEL_SERVER_ID_UINDEX)
+    override fun `as`(alias: String): ConfigChannel = ConfigChannel(DSL.name(alias), this)
+    override fun `as`(alias: Name): ConfigChannel = ConfigChannel(alias, this)
+    override fun `as`(alias: Table<*>): ConfigChannel = ConfigChannel(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): ConfigChannel = ConfigChannel(DSL.name(name), null)
+    override fun rename(name: String): ConfigChannel = ConfigChannel(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): ConfigChannel = ConfigChannel(name, null)
+    override fun rename(name: Name): ConfigChannel = ConfigChannel(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): ConfigChannel = ConfigChannel(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row2 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row2<Long?, Long?> = super.fieldsRow() as Row2<Long?, Long?>
+    override fun rename(name: Table<*>): ConfigChannel = ConfigChannel(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (Long?, Long?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): ConfigChannel = ConfigChannel(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (Long?, Long?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): ConfigChannel = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): ConfigChannel = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): ConfigChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): ConfigChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): ConfigChannel = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): ConfigChannel = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): ConfigChannel = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): ConfigChannel = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): ConfigChannel = where(DSL.notExists(select))
 }

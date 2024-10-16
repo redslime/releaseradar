@@ -36,7 +36,7 @@ suspend fun main() {
     config = readConfig()
     cache = Cache()
     db = Database(cache, config.dbHost, config.dbUser, config.dbPassword)
-    spotify = SpotifyClient().login(config.spotifyClientId, config.spotifySecret)
+    spotify = SpotifyClient().login(config.spotifyFallbacks)
     webServer = WebServer()
 
     thread {

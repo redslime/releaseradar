@@ -5,18 +5,23 @@ package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
 import java.time.LocalDateTime
-import java.util.function.Function
 
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.Path
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row3
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
@@ -27,8 +32,13 @@ import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
 import xyz.redslime.releaseradar.db.releaseradar.Releaseradar
+import xyz.redslime.releaseradar.db.releaseradar.keys.ARTIST_RADAR_ARTIST_ID_FK
+import xyz.redslime.releaseradar.db.releaseradar.keys.ARTIST_RADAR_EXCLUDE_ARTIST_ID_FK
 import xyz.redslime.releaseradar.db.releaseradar.keys.KEY_ARTIST_ARTIST_ID_UINDEX
 import xyz.redslime.releaseradar.db.releaseradar.keys.KEY_ARTIST_PRIMARY
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadar.ArtistRadarPath
+import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude.ArtistRadarExcludePath
+import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel.RadarChannelPath
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 
 
@@ -38,19 +48,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 @Suppress("UNCHECKED_CAST")
 open class Artist(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, ArtistRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, ArtistRecord>?,
+    parentPath: InverseForeignKey<out Record, ArtistRecord>?,
     aliased: Table<ArtistRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<ArtistRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -63,7 +77,7 @@ open class Artist(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<ArtistRecord> = ArtistRecord::class.java
+    override fun getRecordType(): Class<ArtistRecord> = ArtistRecord::class.java
 
     /**
      * The column <code>releaseradar.artist.id</code>.
@@ -80,8 +94,9 @@ open class Artist(
      */
     val LAST_RELEASE: TableField<ArtistRecord, LocalDateTime?> = createField(DSL.name("last_release"), SQLDataType.LOCALDATETIME(0), this, "")
 
-    private constructor(alias: Name, aliased: Table<ArtistRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<ArtistRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<ArtistRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<ArtistRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<ArtistRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.artist</code> table reference
@@ -98,42 +113,135 @@ open class Artist(
      */
     constructor(): this(DSL.name("artist"), null)
 
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, ArtistRecord>): this(Internal.createPathAlias(child, key), child, key, ARTIST, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getPrimaryKey(): UniqueKey<ArtistRecord> = KEY_ARTIST_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<ArtistRecord>> = listOf(KEY_ARTIST_ARTIST_ID_UINDEX)
-    public override fun `as`(alias: String): Artist = Artist(DSL.name(alias), this)
-    public override fun `as`(alias: Name): Artist = Artist(alias, this)
-    public override fun `as`(alias: Table<*>): Artist = Artist(alias.getQualifiedName(), this)
+    constructor(path: Table<out Record>, childPath: ForeignKey<out Record, ArtistRecord>?, parentPath: InverseForeignKey<out Record, ArtistRecord>?): this(Internal.createPathAlias(path, childPath, parentPath), path, childPath, parentPath, ARTIST, null, null)
+
+    /**
+     * A subtype implementing {@link Path} for simplified path-based joins.
+     */
+    open class ArtistPath : Artist, Path<ArtistRecord> {
+        constructor(path: Table<out Record>, childPath: ForeignKey<out Record, ArtistRecord>?, parentPath: InverseForeignKey<out Record, ArtistRecord>?): super(path, childPath, parentPath)
+        private constructor(alias: Name, aliased: Table<ArtistRecord>): super(alias, aliased)
+        override fun `as`(alias: String): ArtistPath = ArtistPath(DSL.name(alias), this)
+        override fun `as`(alias: Name): ArtistPath = ArtistPath(alias, this)
+        override fun `as`(alias: Table<*>): ArtistPath = ArtistPath(alias.qualifiedName, this)
+    }
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getPrimaryKey(): UniqueKey<ArtistRecord> = KEY_ARTIST_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<ArtistRecord>> = listOf(KEY_ARTIST_ARTIST_ID_UINDEX)
+
+    private lateinit var _artistRadar: ArtistRadarPath
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>releaseradar.artist_radar</code> table
+     */
+    fun artistRadar(): ArtistRadarPath {
+        if (!this::_artistRadar.isInitialized)
+            _artistRadar = ArtistRadarPath(this, null, ARTIST_RADAR_ARTIST_ID_FK.inverseKey)
+
+        return _artistRadar;
+    }
+
+    val artistRadar: ArtistRadarPath
+        get(): ArtistRadarPath = artistRadar()
+
+    private lateinit var _artistRadarExclude: ArtistRadarExcludePath
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>releaseradar.artist_radar_exclude</code> table
+     */
+    fun artistRadarExclude(): ArtistRadarExcludePath {
+        if (!this::_artistRadarExclude.isInitialized)
+            _artistRadarExclude = ArtistRadarExcludePath(this, null, ARTIST_RADAR_EXCLUDE_ARTIST_ID_FK.inverseKey)
+
+        return _artistRadarExclude;
+    }
+
+    val artistRadarExclude: ArtistRadarExcludePath
+        get(): ArtistRadarExcludePath = artistRadarExclude()
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>releaseradar.radar_channel</code> table, via the
+     * <code>artist_radar_radar_channel_id_fk</code> key
+     */
+    val artistRadarRadarChannelIdFk: RadarChannelPath
+        get(): RadarChannelPath = artistRadar().radarChannel()
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>releaseradar.radar_channel</code> table, via the
+     * <code>artist_radar_exclude_radar_channel_id_fk</code> key
+     */
+    val artistRadarExcludeRadarChannelIdFk: RadarChannelPath
+        get(): RadarChannelPath = artistRadarExclude().radarChannel()
+    override fun `as`(alias: String): Artist = Artist(DSL.name(alias), this)
+    override fun `as`(alias: Name): Artist = Artist(alias, this)
+    override fun `as`(alias: Table<*>): Artist = Artist(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): Artist = Artist(DSL.name(name), null)
+    override fun rename(name: String): Artist = Artist(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): Artist = Artist(name, null)
+    override fun rename(name: Name): Artist = Artist(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): Artist = Artist(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row3 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row3<String?, String?, LocalDateTime?> = super.fieldsRow() as Row3<String?, String?, LocalDateTime?>
+    override fun rename(name: Table<*>): Artist = Artist(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (String?, String?, LocalDateTime?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): Artist = Artist(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (String?, String?, LocalDateTime?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): Artist = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): Artist = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): Artist = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): Artist = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): Artist = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): Artist = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): Artist = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): Artist = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): Artist = where(DSL.notExists(select))
 }

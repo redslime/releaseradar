@@ -6,10 +6,9 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.on
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.redslime.releaseradar.commands
 import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.util.coroutine
 
 /**
  * @author redslime
@@ -25,18 +24,21 @@ class CommandListener {
             if(key != null) {
                 commands.stream()
                     .filter { it.name == key }
-                    .forEach { runBlocking { launch {
-                        if((dms && it.dms) || it.perm.hasPermission(client, interaction)) {
-                            it.handleInteraction(interaction)
-                        } else {
-                            interaction.deferEphemeralResponse().respond {
-                                embed {
-                                    error()
-                                    description = "This command is either not available here or you don't have enough permissions."
+                    .forEach {
+                        coroutine {
+                            if ((dms && it.dms) || it.perm.hasPermission(client, interaction)) {
+                                it.handleInteraction(interaction)
+                            } else {
+                                interaction.deferEphemeralResponse().respond {
+                                    embed {
+                                        error()
+                                        description =
+                                            "This command is either not available here or you don't have enough permissions."
+                                    }
                                 }
                             }
                         }
-                    }}}
+                    }
             }
         }
     }

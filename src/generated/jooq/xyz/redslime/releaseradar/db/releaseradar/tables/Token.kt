@@ -4,24 +4,26 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.util.function.Function
-
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row2
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
-import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -37,19 +39,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.TokenRecord
 @Suppress("UNCHECKED_CAST")
 open class Token(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, TokenRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, TokenRecord>?,
+    parentPath: InverseForeignKey<out Record, TokenRecord>?,
     aliased: Table<TokenRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<TokenRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -62,7 +68,7 @@ open class Token(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<TokenRecord> = TokenRecord::class.java
+    override fun getRecordType(): Class<TokenRecord> = TokenRecord::class.java
 
     /**
      * The column <code>releaseradar.token.id</code>.
@@ -74,8 +80,9 @@ open class Token(
      */
     val VALUE: TableField<TokenRecord, String?> = createField(DSL.name("value"), SQLDataType.VARCHAR(256), this, "")
 
-    private constructor(alias: Name, aliased: Table<TokenRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<TokenRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<TokenRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<TokenRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<TokenRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.token</code> table reference
@@ -91,43 +98,75 @@ open class Token(
      * Create a <code>releaseradar.token</code> table reference
      */
     constructor(): this(DSL.name("token"), null)
-
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, TokenRecord>): this(Internal.createPathAlias(child, key), child, key, TOKEN, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getPrimaryKey(): UniqueKey<TokenRecord> = KEY_TOKEN_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<TokenRecord>> = listOf(KEY_TOKEN_TOKEN_ID_UINDEX)
-    public override fun `as`(alias: String): Token = Token(DSL.name(alias), this)
-    public override fun `as`(alias: Name): Token = Token(alias, this)
-    public override fun `as`(alias: Table<*>): Token = Token(alias.getQualifiedName(), this)
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getPrimaryKey(): UniqueKey<TokenRecord> = KEY_TOKEN_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<TokenRecord>> = listOf(KEY_TOKEN_TOKEN_ID_UINDEX)
+    override fun `as`(alias: String): Token = Token(DSL.name(alias), this)
+    override fun `as`(alias: Name): Token = Token(alias, this)
+    override fun `as`(alias: Table<*>): Token = Token(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): Token = Token(DSL.name(name), null)
+    override fun rename(name: String): Token = Token(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): Token = Token(name, null)
+    override fun rename(name: Name): Token = Token(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): Token = Token(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row2 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row2<String?, String?> = super.fieldsRow() as Row2<String?, String?>
+    override fun rename(name: Table<*>): Token = Token(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (String?, String?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): Token = Token(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (String?, String?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): Token = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): Token = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): Token = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): Token = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): Token = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): Token = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): Token = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): Token = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): Token = where(DSL.notExists(select))
 }

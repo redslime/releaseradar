@@ -4,25 +4,27 @@
 package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
-import java.util.function.Function
-
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
 import org.jooq.Identity
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row5
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
-import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -38,19 +40,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 @Suppress("UNCHECKED_CAST")
 open class PostLater(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, PostLaterRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, PostLaterRecord>?,
+    parentPath: InverseForeignKey<out Record, PostLaterRecord>?,
     aliased: Table<PostLaterRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<PostLaterRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -63,7 +69,7 @@ open class PostLater(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<PostLaterRecord> = PostLaterRecord::class.java
+    override fun getRecordType(): Class<PostLaterRecord> = PostLaterRecord::class.java
 
     /**
      * The column <code>releaseradar.post_later.id</code>.
@@ -90,8 +96,9 @@ open class PostLater(
      */
     val USER_CHANNEL: TableField<PostLaterRecord, Boolean?> = createField(DSL.name("user_channel"), SQLDataType.BIT.nullable(false), this, "")
 
-    private constructor(alias: Name, aliased: Table<PostLaterRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<PostLaterRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<PostLaterRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<PostLaterRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<PostLaterRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.post_later</code> table reference
@@ -107,44 +114,76 @@ open class PostLater(
      * Create a <code>releaseradar.post_later</code> table reference
      */
     constructor(): this(DSL.name("post_later"), null)
-
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, PostLaterRecord>): this(Internal.createPathAlias(child, key), child, key, POST_LATER, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getIdentity(): Identity<PostLaterRecord, Int?> = super.getIdentity() as Identity<PostLaterRecord, Int?>
-    public override fun getPrimaryKey(): UniqueKey<PostLaterRecord> = KEY_POST_LATER_PRIMARY
-    public override fun getUniqueKeys(): List<UniqueKey<PostLaterRecord>> = listOf(KEY_POST_LATER_POST_LATER_ID_UINDEX)
-    public override fun `as`(alias: String): PostLater = PostLater(DSL.name(alias), this)
-    public override fun `as`(alias: Name): PostLater = PostLater(alias, this)
-    public override fun `as`(alias: Table<*>): PostLater = PostLater(alias.getQualifiedName(), this)
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getIdentity(): Identity<PostLaterRecord, Int?> = super.getIdentity() as Identity<PostLaterRecord, Int?>
+    override fun getPrimaryKey(): UniqueKey<PostLaterRecord> = KEY_POST_LATER_PRIMARY
+    override fun getUniqueKeys(): List<UniqueKey<PostLaterRecord>> = listOf(KEY_POST_LATER_POST_LATER_ID_UINDEX)
+    override fun `as`(alias: String): PostLater = PostLater(DSL.name(alias), this)
+    override fun `as`(alias: Name): PostLater = PostLater(alias, this)
+    override fun `as`(alias: Table<*>): PostLater = PostLater(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): PostLater = PostLater(DSL.name(name), null)
+    override fun rename(name: String): PostLater = PostLater(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): PostLater = PostLater(name, null)
+    override fun rename(name: Name): PostLater = PostLater(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): PostLater = PostLater(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row5 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row5<Int?, String?, String?, Long?, Boolean?> = super.fieldsRow() as Row5<Int?, String?, String?, Long?, Boolean?>
+    override fun rename(name: Table<*>): PostLater = PostLater(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (Int?, String?, String?, Long?, Boolean?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): PostLater = PostLater(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (Int?, String?, String?, Long?, Boolean?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): PostLater = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): PostLater = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): PostLater = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): PostLater = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): PostLater = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): PostLater = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): PostLater = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): PostLater = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): PostLater = where(DSL.notExists(select))
 }

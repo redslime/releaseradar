@@ -1,19 +1,17 @@
 package xyz.redslime.releaseradar.task
 
+import com.adamratzman.spotify.models.SimpleAlbum
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.rest.request.RestRequestException
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.channels.Channel
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
-import xyz.redslime.releaseradar.util.Timezone
-import xyz.redslime.releaseradar.util.getMillisUntilMidnightNZ
-import xyz.redslime.releaseradar.util.pluralPrefixed
-import xyz.redslime.releaseradar.util.printToDiscord
+import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.measureTime
 
 /**
@@ -26,10 +24,8 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
 
     override fun run(client: Kord): TimerTask.() -> Unit {
         return {
-            runBlocking {
-                launch {
-                    runActual(client)
-                }
+            coroutine {
+                runActual(client)
             }
         }
     }
@@ -47,14 +43,24 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
         val duration = measureTime {
             printToDiscord(client, LOGGER, "---- Checking new releases ----")
             val artists = cache.getAllArtistsOnRadars()
-            val albums = artists.flatMap { spotify.getAlbumsAfter(it.id!!, it.lastRelease) }.toList().distinctBy { it.id }
+            val count = AtomicInteger(0)
+//            val albums = artists.flatMap { spotify.getAlbumsAfter(it.id!!, it.lastRelease) }.toList().distinctBy { it.id }
+            val channel = Channel<SimpleAlbum>(Channel.UNLIMITED)
 
-            printToDiscord(client, LOGGER, "New albums found: ${albums.size}")
-            client.editPresence {
-                listening(pluralPrefixed("new release", albums.size))
+            // use a channel to preserve first-come-first-serve order (most popular artist releases are posted first)
+            coroutine {
+                val postedAlbums = mutableSetOf<String>()
+
+                spotify.getAlbumsAfterFlow(artists).collect { album ->
+                    if(postedAlbums.add(album.id)) {
+                        count.getAndIncrement()
+                        channel.send(album)
+                    }
+                }
+                channel.close()
             }
 
-            albums.forEach { album ->
+            for(album in channel) {
                 // find radars this needs to be posted in
                 val artistIds = album.artists.map { it.id }.distinct()
                 val radars = cache.getAllRadarsWithArtists(artistIds)
@@ -68,12 +74,12 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                         }
 
                         try {
-                            val channel = client.getChannel(Snowflake(channelId)) as MessageChannelBehavior
+                            val ch = client.getChannel(Snowflake(channelId)) as MessageChannelBehavior
                             val timezone = cache.getRadarTimezone(radarId)
 
                             if(timezone == Timezone.ASAP) {
                                 LOGGER.info("Posting ${album.name} now in $channelId")
-                                postAlbum(album.toAlbum(), channel, radarId)
+                                postAlbum(album.toAlbum(), ch, radarId)
                             } else {
                                 LOGGER.info("Scheduled to post ${album.name} later in $channelId (${timezone.name})")
                                 DiscordClient.postLaterTask.add(album, channelId, timezone)
@@ -88,6 +94,11 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                 }
 
                 db.updateLastRelease(artistIds, album.getReleaseDateTime()) // this won't be reached 99% of the time so batching is not important here
+            }
+
+            printToDiscord(client, LOGGER, "New albums found: ${count.get()}")
+            client.editPresence {
+                listening(pluralPrefixed("new release", count.get()))
             }
         }
         printToDiscord(client, LOGGER, "Checking new releases took $duration")

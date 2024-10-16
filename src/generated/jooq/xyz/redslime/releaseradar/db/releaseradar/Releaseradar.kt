@@ -86,9 +86,9 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
      */
     val USER_STAT: UserStat get() = UserStat.USER_STAT
 
-    public override fun getCatalog(): Catalog = DefaultCatalog.DEFAULT_CATALOG
+    override fun getCatalog(): Catalog = DefaultCatalog.DEFAULT_CATALOG
 
-    public override fun getTables(): List<Table<*>> = listOf(
+    override fun getTables(): List<Table<*>> = listOf(
         Artist.ARTIST,
         ArtistRadar.ARTIST_RADAR,
         ArtistRadarExclude.ARTIST_RADAR_EXCLUDE,

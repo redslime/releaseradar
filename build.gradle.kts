@@ -3,14 +3,14 @@ import org.jooq.meta.jaxb.Logging
 val kordVersion = "0.14.0"
 val spotifyVersion = "4.1.3"
 val log4jVersion = "2.23.1"
-val jooqVersion = "3.19.11"
+val jooqVersion = "3.19.13"
 val gsonVersion = "2.11.0"
 val emoji4jVersion = "15.1.2"
 val ktorVersion = "2.3.11"
 
 plugins {
     kotlin("jvm") version "1.9.22"
-    id("nu.studer.jooq") version "8.2"
+    id("nu.studer.jooq") version "9.0"
     id("io.ktor.plugin") version "2.3.1"
 }
 
@@ -59,7 +59,7 @@ jooq {
                     name = "org.jooq.codegen.KotlinGenerator"
                     database.apply {
                         name = "org.jooq.meta.mysql.MySQLDatabase"
-                        excludes = "(?i:information_schema\\..*)"
+                        excludes = "(?i:information_schema\\..*)|(?i:performance_schema\\..*)"
                     }
                     generate.apply {
                         isJavaTimeTypes = true

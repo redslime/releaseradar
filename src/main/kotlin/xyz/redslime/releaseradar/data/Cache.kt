@@ -308,4 +308,9 @@ class Cache : NameCacheProvider {
     fun isArtistAbandoned(artistId: String?): Boolean {
         return artistRadars.none { it.artistId == artistId } && artistRadarExcludes.none { it.artistId == artistId }
     }
+
+    fun sortArtistPopularity() {
+        val popularity = artistRadars.groupingBy { it.artistId }.eachCount()
+        artistRadars.sortByDescending { popularity[it.artistId] }
+    }
 }

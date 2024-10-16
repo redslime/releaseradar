@@ -6,6 +6,9 @@ import dev.kord.core.entity.Message
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.entity.channel.TextChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.datetime.toKotlinInstant
 import org.apache.logging.log4j.Logger
 import xyz.redslime.releaseradar.DiscordClient
@@ -166,4 +169,10 @@ fun formatPercent(n1: Int, n2: Int): String {
 
 fun format1(n: Number): String {
     return String.format("%.1f", n)
+}
+
+fun coroutine(block: suspend () -> Any) {
+    CoroutineScope(Dispatchers.Default).launch {
+        block.invoke()
+    }
 }

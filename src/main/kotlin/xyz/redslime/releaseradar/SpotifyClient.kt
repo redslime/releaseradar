@@ -3,17 +3,19 @@ package xyz.redslime.releaseradar
 import com.adamratzman.spotify.SpotifyAppApi
 import com.adamratzman.spotify.SpotifyException
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
-import com.adamratzman.spotify.models.Album
-import com.adamratzman.spotify.models.Artist
-import com.adamratzman.spotify.models.SimpleAlbum
-import com.adamratzman.spotify.models.SimpleArtist
+import com.adamratzman.spotify.models.*
 import com.adamratzman.spotify.spotifyAppApi
 import com.adamratzman.spotify.utils.Market
 import io.ktor.client.network.sockets.*
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.apache.logging.log4j.LogManager
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.exception.InvalidUrlException
 import xyz.redslime.releaseradar.exception.TooManyNamesException
 import xyz.redslime.releaseradar.util.*
@@ -29,21 +31,78 @@ import kotlin.coroutines.coroutineContext
 class SpotifyClient {
 
     private val logger = LogManager.getLogger(javaClass)
-    private val mutex = Mutex()
-    private lateinit var api: SpotifyAppApi
+    private val workers = Cycler(mutableListOf<SpotifyWorker>())
 
-    suspend fun login(spotifyClientId: String, spotifySecret: String): SpotifyClient {
-        logger.info("Logging into spotify api....")
-        api = spotifyAppApi(spotifyClientId, spotifySecret) {
-            options.requestTimeoutMillis = Duration.ofDays(1).toMillis()
-        }.build()
-        logger.info(api.toString())
+    class SpotifyWorker(private val id: String, private val secret: String) {
+
+        private val logger = LogManager.getLogger(javaClass)
+        private val ratelimitLock = Mutex()
+        private lateinit var api: SpotifyAppApi
+        private var ratelimitedUntil: Long = 0
+
+        suspend fun login(): SpotifyWorker {
+            api = spotifyAppApi(id, secret) {
+                options.requestTimeoutMillis = Duration.ofSeconds(10).toMillis()
+                options.retryWhenRateLimited = false
+            }.build()
+            return this
+        }
+
+        suspend fun <T> execute(block: suspend CoroutineContext.(SpotifyAppApi) -> T): T {
+            return execute0 { block.invoke(coroutineContext, api) }
+        }
+
+        private suspend fun <T> execute0(block: suspend () -> T): T {
+            return ratelimitLock.withLock {
+                try {
+                    block.invoke()
+                } catch(ex: SpotifyRatelimitedException) {
+                    logger.warn("Spotify api rate limited on worker", ex)
+                    ratelimit(ex.getTime())
+                    throw ex
+                }
+            }
+        }
+
+        fun isAvailable(): Boolean {
+            return !isRatedlimited()
+        }
+
+        fun isRatedlimited(): Boolean {
+            return ratelimitedUntil > System.currentTimeMillis()
+        }
+
+        fun ratelimit(duration: Long) {
+            ratelimitedUntil = System.currentTimeMillis() + (duration * 1000L)
+        }
+    }
+
+    suspend fun login(credentials: Map<String, String>): SpotifyClient {
+        logger.info("Setting up ${credentials.size} Spotify workers...")
+        credentials.forEach { (id, secret) ->
+            workers.add(SpotifyWorker(id, secret).login())
+        }
+
         return this
     }
 
     suspend fun <T> api(block: suspend CoroutineContext.(SpotifyAppApi) -> T): T {
-        mutex.withLock {
-            return block.invoke(coroutineContext, api)
+        return try {
+            coroutineScope {
+                val job = async {
+                    var next = workers.next { it.isAvailable() }
+
+                    while(next == null) {
+                        delay(100)
+                        next = workers.next { it.isAvailable() }
+                    }
+
+                    next.execute(block)
+                }
+                job.await()
+            }
+        } catch (ex: SpotifyRatelimitedException) {
+            api(block)
         }
     }
 
@@ -55,32 +114,38 @@ class SpotifyClient {
     }
 
     suspend fun getAlbumsAfter(artistId: String, date: LocalDateTime?): List<SimpleAlbum> {
-        return try {
-            val albums = getAllAlbums(artistId)
-            logger.info("(2)$artistId: ${albums.size}")
-            albums.filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
-        } catch(ex: ConnectTimeoutException) {
-            logger.error("Connection timed out trying to get albums for $artistId after $date, trying again", ex)
-            getAlbumsAfter(artistId, date)
-        } catch(ex: SpotifyException) {
-            logger.error("Error while trying to get albums for $artistId after $date, trying again", ex)
-            getAlbumsAfter(artistId, date)
+        val albums = getAllAlbums(artistId)
+        logger.info("(2)$artistId: ${albums.size}")
+        return albums.filter { date?.let { it1 -> it.isReleasedAfter(it1) } == true }.toList().distinctBy { it.id }
+    }
+
+    suspend fun getAlbumsAfterFlow(artists: List<ArtistRecord>): Flow<SimpleAlbum> = flow {
+        artists.forEach { rec ->
+            getAlbumsAfter(rec.id!!, rec.lastRelease).forEach { a ->
+                emit(a)
+                logger.info("(2)${rec.id} NEW: ${a.name}")
+            }
         }
     }
 
     suspend fun getAllAlbums(artistId: String): MutableList<SimpleAlbum> {
-        return api { api ->
-            try {
-                return@api api.artists.getArtistAlbums(artistId,
+        return try {
+            api { api ->
+                api.artists.getArtistAlbums(
+                    artistId,
                     include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
-                    market = Market.WS).getAllItemsNotNull().toMutableList()
-            } catch(ex: ConnectTimeoutException) {
-                logger.error("Connection timed out trying to get albums for $artistId, trying again", ex)
-                getAllAlbums(artistId)
-            } catch (ex: CancellationException) {
-                logger.error("Coroutine to get albums for $artistId cancelled, trying again", ex)
-                getAllAlbums(artistId)
+                    market = Market.WS
+                ).getAllItemsNotNull().toMutableList()
             }
+        } catch(ex: SpotifyException.TimeoutException) {
+            logger.error("Timed out trying to get albums for $artistId, trying again", ex)
+            getAllAlbums(artistId)
+        } catch(ex: ConnectTimeoutException) {
+            logger.error("Timed out trying to connect to api to get albums for $artistId, trying again", ex)
+            getAllAlbums(artistId)
+        } catch(ex: Exception) {
+            logger.error("Error trying to get albums for $artistId, trying again", ex)
+            getAllAlbums(artistId)
         }
     }
 
@@ -207,5 +272,11 @@ class SpotifyClient {
                 api.tracks.getTrack(url.replace(trackRegex, "$1"))?.artists
             }
         return null
+    }
+
+    suspend fun toFullAlbum(album: SimpleAlbum): Album {
+        return api { api ->
+            api.albums.getAlbum(album.id, Market.WS)!!
+        }
     }
 }

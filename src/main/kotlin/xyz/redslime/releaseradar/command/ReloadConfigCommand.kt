@@ -22,7 +22,7 @@ class ReloadConfigCommand: AdminCommand("reloadconfig", "Reload config from disk
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
         try {
             val config = reloadConfig()
-            spotify.login(config.spotifyClientId, config.spotifySecret)
+            spotify.login(config.spotifyFallbacks)
             interaction.deferPublicResponse().respond {
                 embed {
                     success()

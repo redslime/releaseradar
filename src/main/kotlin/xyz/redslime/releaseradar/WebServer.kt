@@ -24,8 +24,6 @@ import kotlin.collections.set
  */
 class WebServer {
 
-    private var server: NettyApplicationEngine? = null
-
     val logger: Logger = LogManager.getLogger(javaClass)
     val authConsumers = mutableMapOf<String, suspend String?.() -> Unit>()
     var enabled = true
@@ -37,8 +35,7 @@ class WebServer {
             return
         }
 
-        server = embeddedServer(Netty, host = "0.0.0.0", port = config.serverPort, module = Application::module)
-            .start(wait = true)
+        embeddedServer(Netty, host = "0.0.0.0", port = config.serverPort, module = Application::module).start(wait = true)
     }
 
     fun getAuthUrl(public: Boolean, consumer: suspend String?.() -> Unit): String {

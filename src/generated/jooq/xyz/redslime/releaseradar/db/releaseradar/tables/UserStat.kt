@@ -5,25 +5,28 @@ package xyz.redslime.releaseradar.db.releaseradar.tables
 
 
 import java.time.LocalDateTime
-import java.util.function.Function
 
+import kotlin.collections.Collection
 import kotlin.collections.List
 
+import org.jooq.Condition
 import org.jooq.Field
 import org.jooq.ForeignKey
 import org.jooq.Index
+import org.jooq.InverseForeignKey
 import org.jooq.Name
+import org.jooq.PlainSQL
+import org.jooq.QueryPart
 import org.jooq.Record
-import org.jooq.Records
-import org.jooq.Row8
+import org.jooq.SQL
 import org.jooq.Schema
-import org.jooq.SelectField
+import org.jooq.Select
+import org.jooq.Stringly
 import org.jooq.Table
 import org.jooq.TableField
 import org.jooq.TableOptions
 import org.jooq.UniqueKey
 import org.jooq.impl.DSL
-import org.jooq.impl.Internal
 import org.jooq.impl.SQLDataType
 import org.jooq.impl.TableImpl
 
@@ -41,19 +44,23 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserStatRecord
 @Suppress("UNCHECKED_CAST")
 open class UserStat(
     alias: Name,
-    child: Table<out Record>?,
-    path: ForeignKey<out Record, UserStatRecord>?,
+    path: Table<out Record>?,
+    childPath: ForeignKey<out Record, UserStatRecord>?,
+    parentPath: InverseForeignKey<out Record, UserStatRecord>?,
     aliased: Table<UserStatRecord>?,
-    parameters: Array<Field<*>?>?
+    parameters: Array<Field<*>?>?,
+    where: Condition?
 ): TableImpl<UserStatRecord>(
     alias,
     Releaseradar.RELEASERADAR,
-    child,
     path,
+    childPath,
+    parentPath,
     aliased,
     parameters,
     DSL.comment(""),
-    TableOptions.table()
+    TableOptions.table(),
+    where,
 ) {
     companion object {
 
@@ -66,7 +73,7 @@ open class UserStat(
     /**
      * The class holding records for this type
      */
-    public override fun getRecordType(): Class<UserStatRecord> = UserStatRecord::class.java
+    override fun getRecordType(): Class<UserStatRecord> = UserStatRecord::class.java
 
     /**
      * The column <code>releaseradar.user_stat.user_id</code>.
@@ -108,8 +115,9 @@ open class UserStat(
      */
     val TIMESTAMP: TableField<UserStatRecord, LocalDateTime?> = createField(DSL.name("timestamp"), SQLDataType.LOCALDATETIME(0).nullable(false), this, "")
 
-    private constructor(alias: Name, aliased: Table<UserStatRecord>?): this(alias, null, null, aliased, null)
-    private constructor(alias: Name, aliased: Table<UserStatRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, aliased, parameters)
+    private constructor(alias: Name, aliased: Table<UserStatRecord>?): this(alias, null, null, null, aliased, null, null)
+    private constructor(alias: Name, aliased: Table<UserStatRecord>?, parameters: Array<Field<*>?>?): this(alias, null, null, null, aliased, parameters, null)
+    private constructor(alias: Name, aliased: Table<UserStatRecord>?, where: Condition): this(alias, null, null, null, aliased, null, where)
 
     /**
      * Create an aliased <code>releaseradar.user_stat</code> table reference
@@ -125,43 +133,75 @@ open class UserStat(
      * Create a <code>releaseradar.user_stat</code> table reference
      */
     constructor(): this(DSL.name("user_stat"), null)
-
-    constructor(child: Table<out Record>, key: ForeignKey<out Record, UserStatRecord>): this(Internal.createPathAlias(child, key), child, key, USER_STAT, null)
-    public override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
-    public override fun getIndexes(): List<Index> = listOf(USER_STAT_USER_STAT__INDEX, USER_STAT_USER_STAT_USER_ID_INDEX, USER_STAT_USER_STAT_USER_ID_SERVER_ID_INDEX)
-    public override fun getPrimaryKey(): UniqueKey<UserStatRecord> = KEY_USER_STAT_PRIMARY
-    public override fun `as`(alias: String): UserStat = UserStat(DSL.name(alias), this)
-    public override fun `as`(alias: Name): UserStat = UserStat(alias, this)
-    public override fun `as`(alias: Table<*>): UserStat = UserStat(alias.getQualifiedName(), this)
+    override fun getSchema(): Schema? = if (aliased()) null else Releaseradar.RELEASERADAR
+    override fun getIndexes(): List<Index> = listOf(USER_STAT_USER_STAT__INDEX, USER_STAT_USER_STAT_USER_ID_INDEX, USER_STAT_USER_STAT_USER_ID_SERVER_ID_INDEX)
+    override fun getPrimaryKey(): UniqueKey<UserStatRecord> = KEY_USER_STAT_PRIMARY
+    override fun `as`(alias: String): UserStat = UserStat(DSL.name(alias), this)
+    override fun `as`(alias: Name): UserStat = UserStat(alias, this)
+    override fun `as`(alias: Table<*>): UserStat = UserStat(alias.qualifiedName, this)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: String): UserStat = UserStat(DSL.name(name), null)
+    override fun rename(name: String): UserStat = UserStat(DSL.name(name), null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Name): UserStat = UserStat(name, null)
+    override fun rename(name: Name): UserStat = UserStat(name, null)
 
     /**
      * Rename this table
      */
-    public override fun rename(name: Table<*>): UserStat = UserStat(name.getQualifiedName(), null)
-
-    // -------------------------------------------------------------------------
-    // Row8 type methods
-    // -------------------------------------------------------------------------
-    public override fun fieldsRow(): Row8<Long?, Long?, String?, Boolean?, Boolean?, Boolean?, Boolean?, LocalDateTime?> = super.fieldsRow() as Row8<Long?, Long?, String?, Boolean?, Boolean?, Boolean?, Boolean?, LocalDateTime?>
+    override fun rename(name: Table<*>): UserStat = UserStat(name.qualifiedName, null)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(from: (Long?, Long?, String?, Boolean?, Boolean?, Boolean?, Boolean?, LocalDateTime?) -> U): SelectField<U> = convertFrom(Records.mapping(from))
+    override fun where(condition: Condition): UserStat = UserStat(qualifiedName, if (aliased()) this else null, condition)
 
     /**
-     * Convenience mapping calling {@link SelectField#convertFrom(Class,
-     * Function)}.
+     * Create an inline derived table from this table
      */
-    fun <U> mapping(toType: Class<U>, from: (Long?, Long?, String?, Boolean?, Boolean?, Boolean?, Boolean?, LocalDateTime?) -> U): SelectField<U> = convertFrom(toType, Records.mapping(from))
+    override fun where(conditions: Collection<Condition>): UserStat = where(DSL.and(conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(vararg conditions: Condition): UserStat = where(DSL.and(*conditions))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun where(condition: Field<Boolean?>): UserStat = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(condition: SQL): UserStat = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String): UserStat = where(DSL.condition(condition))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg binds: Any?): UserStat = where(DSL.condition(condition, *binds))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    @PlainSQL override fun where(@Stringly.SQL condition: String, vararg parts: QueryPart): UserStat = where(DSL.condition(condition, *parts))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereExists(select: Select<*>): UserStat = where(DSL.exists(select))
+
+    /**
+     * Create an inline derived table from this table
+     */
+    override fun whereNotExists(select: Select<*>): UserStat = where(DSL.notExists(select))
 }

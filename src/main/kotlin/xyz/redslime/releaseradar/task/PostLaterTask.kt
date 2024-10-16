@@ -7,13 +7,12 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.POST_LATER
 import xyz.redslime.releaseradar.util.Timezone
+import xyz.redslime.releaseradar.util.coroutine
 import xyz.redslime.releaseradar.util.getMillisUntilTopOfTheHour
 import java.time.Duration
 import java.time.ZonedDateTime
@@ -42,10 +41,8 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
     override fun run(client: Kord): TimerTask.() -> Unit {
         return {
-            runBlocking {
-                launch {
-                    runActual(client)
-                }
+            coroutine {
+                runActual(client)
             }
         }
     }
