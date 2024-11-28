@@ -89,6 +89,7 @@ class DiscordClient {
         QuitListener().register(client)
         InteractionListener().register(client)
         ReactListener().register(client)
+        EmbedListener().register(client)
     }
 
     private fun registerTasks() {

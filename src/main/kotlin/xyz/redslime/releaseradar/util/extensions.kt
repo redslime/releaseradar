@@ -13,9 +13,11 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
 import xyz.redslime.releaseradar.util.emojiRegex
+import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.util.*
 
 /**
  * @author redslime
@@ -145,4 +147,8 @@ fun Float.formatPercentage(): String {
 fun SpotifyRatelimitedException.getTime(): Long {
     val time = message?.replace(Regex(".*for ([0-9]*) seconds.*"), "$1")?.toLong()
     return time ?: 0L
+}
+
+fun Track.getDurationFriendly(): String {
+    return (SimpleDateFormat("mm:ss")).format(Date(this.durationMs.toLong()))
 }
