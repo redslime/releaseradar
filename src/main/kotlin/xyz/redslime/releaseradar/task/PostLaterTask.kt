@@ -7,13 +7,12 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
+import dev.kord.rest.builder.message.embed
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.POST_LATER
-import xyz.redslime.releaseradar.util.Timezone
-import xyz.redslime.releaseradar.util.coroutine
-import xyz.redslime.releaseradar.util.getMillisUntilTopOfTheHour
+import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.*
@@ -161,9 +160,19 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
 
         user.getDmChannelOrNull()?.let {
-            links.chunked(5).forEach { chunk ->
+            links.chunked(10).forEach { chunk ->
                 it.createMessage {
-                    content = chunk.joinToString("\n")
+                    chunk.forEach { url ->
+                        embed {
+                            if(trackRegex.matches(url)) {
+                                val trackId = url.replace(trackRegex, "$1")
+                                buildSingleEmbed(trackId, this)
+                            } else {
+                                val albumId = url.replace(albumRegex, "$1")
+                                buildAlbumEmbed(albumId, this)
+                            }
+                        }
+                    }
                 }
             }
         }

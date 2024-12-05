@@ -1,6 +1,5 @@
 package xyz.redslime.releaseradar.listener
 
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.reply
@@ -11,9 +10,8 @@ import dev.kord.rest.builder.message.allowedMentions
 import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import xyz.redslime.releaseradar.getDurationFriendly
-import xyz.redslime.releaseradar.spotify
-import xyz.redslime.releaseradar.toAlbum
+import xyz.redslime.releaseradar.buildAlbumEmbed
+import xyz.redslime.releaseradar.buildSingleEmbed
 import xyz.redslime.releaseradar.util.silentCancellableCoroutine
 import xyz.redslime.releaseradar.util.trackRegex
 
@@ -53,38 +51,10 @@ class EmbedListener {
                                 embed {
                                     if(trackRegex.matches(item)) {
                                         val trackId = result.groupValues[3]
-                                        spotify.api { it.tracks.getTrack(trackId, Market.WS) }?.let { track ->
-                                            val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
-                                            val year = track.album.releaseDate?.year
-
-                                            this.author {
-                                                this.name = artists
-                                                this.icon = track.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
-                                            }
-                                            this.title = track.name
-                                            this.url = track.externalUrls.spotify
-                                            this.thumbnail {
-                                                this.url = track.album.images?.get(0)?.url ?: ""
-                                            }
-                                            this.description = "Single • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
-                                        }
+                                        buildSingleEmbed(trackId, this)
                                     } else {
                                         val albumId = result.groupValues[4]
-                                        spotify.api { it.albums.getAlbum(albumId, Market.WS) }?.let { album ->
-                                            val artists = album.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
-                                            val year = album.releaseDate.year
-
-                                            this.author {
-                                                this.name = artists
-                                                this.icon = album.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
-                                            }
-                                            this.title = album.name
-                                            this.url = album.externalUrls.spotify
-                                            this.thumbnail {
-                                                url = album.images?.get(0)?.url ?: ""
-                                            }
-                                            this.description = "Album • ${album.label} • ${album.totalTracks} tracks • $year"
-                                        }
+                                        buildAlbumEmbed(albumId, this)
                                     }
                                 }
                             }

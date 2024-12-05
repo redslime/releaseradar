@@ -1,6 +1,7 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.Album
+import com.adamratzman.spotify.utils.Market
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
@@ -120,4 +121,40 @@ fun buildAlbum(album: Album?, builder: EmbedBuilder, footer: Boolean = true) {
 fun buildNoSuchArtist(name: String, builder: EmbedBuilder) {
     builder.error()
     builder.title = ":x: No artist named $name found"
+}
+
+suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder) {
+    spotify.api { it.albums.getAlbum(albumId, Market.WS) }?.let { album ->
+        val artists = album.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
+        val year = album.releaseDate.year
+
+        builder.author {
+            this.name = artists
+            this.icon = album.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
+        }
+        builder.title = album.name
+        builder.url = album.externalUrls.spotify
+        builder.thumbnail {
+            url = album.images?.get(0)?.url ?: ""
+        }
+        builder.description = "Album • ${album.label} • ${album.totalTracks} tracks • $year"
+    }
+}
+
+suspend fun buildSingleEmbed(singleId: String, builder: EmbedBuilder) {
+    spotify.api { it.tracks.getTrack(singleId, Market.WS) }?.let { track ->
+        val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
+        val year = track.album.releaseDate?.year
+
+        builder.author {
+            this.name = artists
+            this.icon = track.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
+        }
+        builder.title = track.name
+        builder.url = track.externalUrls.spotify
+        builder.thumbnail {
+            url = track.album.images?.get(0)?.url ?: ""
+        }
+        builder.description = "Single • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
+    }
 }
