@@ -11,9 +11,9 @@ import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import xyz.redslime.releaseradar.buildAlbumEmbed
+import xyz.redslime.releaseradar.buildArtistEmbed
 import xyz.redslime.releaseradar.buildSingleEmbed
 import xyz.redslime.releaseradar.util.silentCancellableCoroutine
-import xyz.redslime.releaseradar.util.trackRegex
 
 /**
  * Listens for messages containing open.spotify.com url(s) and replies with a custom embed containing information
@@ -24,7 +24,7 @@ import xyz.redslime.releaseradar.util.trackRegex
  */
 class EmbedListener {
 
-    private val regex = Regex(".*open.spotify.com(/intl-[a-zA-Z]{2})*/(track/([A-z0-9]{22})|album/([A-z0-9]{22})).*")
+    private val regex = Regex("open.spotify.com(?:/intl-[A-z]{2})?/(track|album|artist)/([A-z0-9]{22})")
     private val pool = mutableMapOf<Snowflake, Job>()
 
     fun register(client: Kord) {
@@ -37,7 +37,7 @@ class EmbedListener {
                     val msg = this.message
                     val job = silentCancellableCoroutine {
                         // wait a second, perhaps the embed is loading, then this will be cancelled by the UpdateEvent below
-                        delay(1200)
+                        delay(1300)
 
                         msg.reply {
                             this.allowedMentions {
@@ -46,15 +46,14 @@ class EmbedListener {
 
                             // get the corresponding items in the message
                             regex.findAll(msg.content).toList().forEach { result ->
-                                val item = result.groupValues[2] // in the form of (track|album)/[A-z0-9]{22}
+                                val type = result.groupValues[1]
+                                val id = result.groupValues[2]
 
                                 embed {
-                                    if(trackRegex.matches(item)) {
-                                        val trackId = result.groupValues[3]
-                                        buildSingleEmbed(trackId, this)
-                                    } else {
-                                        val albumId = result.groupValues[4]
-                                        buildAlbumEmbed(albumId, this)
+                                    when(type) {
+                                        "track" -> buildSingleEmbed(id, this)
+                                        "album" -> buildAlbumEmbed(id, this)
+                                        "artist" -> buildArtistEmbed(id, this)
                                     }
                                 }
                             }

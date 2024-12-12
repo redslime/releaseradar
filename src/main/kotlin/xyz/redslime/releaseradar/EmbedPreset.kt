@@ -67,7 +67,7 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
         }
         actionRow {
             stringSelect("timezone-prompt") {
-                Timezone.values().forEach {
+                Timezone.entries.forEach {
                     option(it.friendly, it.name)
                 }
             }
@@ -156,5 +156,18 @@ suspend fun buildSingleEmbed(singleId: String, builder: EmbedBuilder) {
             url = track.album.images?.get(0)?.url ?: ""
         }
         builder.description = "Single • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
+    }
+}
+
+suspend fun buildArtistEmbed(artistId: String, builder: EmbedBuilder) {
+    spotify.api { it.artists.getArtist(artistId) }?.let { artist ->
+        builder.title = artist.name
+        builder.url = artist.externalUrls.spotify
+        builder.thumbnail {
+            url = artist.images?.get(0)?.url ?: ""
+        }
+
+        val genres = if(artist.genres.isNotEmpty()) artist.genres.joinToString(", ", postfix = " • ") else ""
+        builder.description = "$genres${"%,d".format(artist.followers.total)} followers"
     }
 }
