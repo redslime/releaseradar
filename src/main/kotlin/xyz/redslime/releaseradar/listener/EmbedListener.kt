@@ -70,7 +70,7 @@ class EmbedListener {
 
                 if(regex.containsMatchIn(msg.content)) {
                     if(msg.embeds.isNotEmpty()) {
-                        if(msg.embeds.any { it.data.url.value?.matches(regex) == true }) {
+                        if(msg.embeds.any { it.data.url.value?.contains(regex) == true }) {
                             // Message containing spotify link(s) that previously had no embeds now has some, cancel our custom embed
                             pool.remove(this.messageId)?.cancel()
                         }
