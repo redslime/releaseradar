@@ -1,6 +1,7 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.Album
+import com.adamratzman.spotify.models.AlbumResultType
 import com.adamratzman.spotify.utils.Market
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
@@ -137,7 +138,7 @@ suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder) {
         builder.thumbnail {
             url = album.images?.get(0)?.url ?: ""
         }
-        builder.description = "Album • ${album.label} • ${album.totalTracks} tracks • $year"
+        builder.description = "${album.albumType.name.qapitalize()} • ${album.label} • ${album.totalTracks} tracks • $year"
     }
 }
 
@@ -145,6 +146,10 @@ suspend fun buildSingleEmbed(singleId: String, builder: EmbedBuilder) {
     spotify.api { it.tracks.getTrack(singleId, Market.WS) }?.let { track ->
         val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
         val year = track.album.releaseDate?.year
+        val type = when(track.album.albumType) {
+            AlbumResultType.Single -> "Single"
+            else -> track.album.name
+        }
 
         builder.author {
             this.name = artists
@@ -155,7 +160,7 @@ suspend fun buildSingleEmbed(singleId: String, builder: EmbedBuilder) {
         builder.thumbnail {
             url = track.album.images?.get(0)?.url ?: ""
         }
-        builder.description = "Single • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
+        builder.description = "$type • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
     }
 }
 

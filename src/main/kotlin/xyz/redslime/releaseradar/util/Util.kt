@@ -175,7 +175,7 @@ fun coroutine(block: suspend () -> Any) {
     }
 }
 
-fun silentCancellableCoroutine(block: suspend () -> Any): Job {
+fun silentCancellableCoroutine(block: suspend () -> Unit): Job {
     return CoroutineScope(Dispatchers.Default).launch {
         try {
             block.invoke()
