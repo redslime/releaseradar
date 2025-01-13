@@ -13,18 +13,20 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import xyz.redslime.releaseradar.buildAlbumEmbed
 import xyz.redslime.releaseradar.buildArtistEmbed
-import xyz.redslime.releaseradar.buildSingleEmbed
+import xyz.redslime.releaseradar.buildTrackEmbed
 import xyz.redslime.releaseradar.util.silentCancellableCoroutine
 
 /**
  * Listens for messages containing open.spotify.com url(s) and replies with a custom embed containing information
- * about the linked item(s) if the default spotify embed is not working (as it often the case)
+ * about the linked item(s) if the default spotify embed is not working (as is often the case)
  *
  * @author redslime
  * @version 2024-11-28
  */
 class EmbedListener {
 
+    private val alwaysPost = false // for testing
+    private val postDelay = if(alwaysPost) 0L else 1300L
     private val regex = Regex("open.spotify.com(?:/intl-[A-z]{2})?/(track|album|artist)/([A-z0-9]{22})")
     private val pool = mutableMapOf<Snowflake, Job>()
     private val posted = mutableMapOf<Snowflake, Pair<Message, Job>>()
@@ -35,11 +37,11 @@ class EmbedListener {
                 return@on
 
             if(regex.containsMatchIn(this.message.content)) {
-                if(this.message.embeds.isEmpty()) {
+                if(this.message.embeds.isEmpty() || alwaysPost) {
                     val msg = this.message
                     val postJob = silentCancellableCoroutine {
                         // wait a second, perhaps the embed is loading, then this will be cancelled by the UpdateEvent below
-                        delay(1300)
+                        delay(postDelay)
 
                         val reply = msg.reply {
                             this.allowedMentions {
@@ -53,7 +55,7 @@ class EmbedListener {
 
                                 embed {
                                     when(type) {
-                                        "track" -> buildSingleEmbed(id, this)
+                                        "track" -> buildTrackEmbed(id, this)
                                         "album" -> buildAlbumEmbed(id, this)
                                         "artist" -> buildArtistEmbed(id, this)
                                     }
@@ -76,6 +78,9 @@ class EmbedListener {
         }
 
         client.on<MessageUpdateEvent> {
+            if(alwaysPost)
+                return@on
+
             if(hasSpotifyEmbed(this.getMessage())) {
                 // message containing spotify link(s) that previously had no embeds now has some, cancel our custom embed
                 pool.remove(this.messageId)?.cancel()

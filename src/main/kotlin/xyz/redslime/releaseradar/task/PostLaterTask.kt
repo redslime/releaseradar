@@ -166,7 +166,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                         embed {
                             if(trackRegex.matches(url)) {
                                 val trackId = url.replace(trackRegex, "$1")
-                                buildSingleEmbed(trackId, this)
+                                buildTrackEmbed(trackId, this)
                             } else {
                                 val albumId = url.replace(albumRegex, "$1")
                                 buildAlbumEmbed(albumId, this)

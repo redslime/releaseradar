@@ -2,6 +2,7 @@ package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.Album
 import com.adamratzman.spotify.models.AlbumResultType
+import com.adamratzman.spotify.models.Track
 import com.adamratzman.spotify.utils.Market
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createEmbed
@@ -15,6 +16,7 @@ import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.listener.InteractionListener.Companion.timezoneCallbacks
 import xyz.redslime.releaseradar.util.Timezone
+import xyz.redslime.releaseradar.util.getArtworkColor
 import xyz.redslime.releaseradar.util.reminderEmoji
 
 /**
@@ -126,8 +128,19 @@ fun buildNoSuchArtist(name: String, builder: EmbedBuilder) {
 
 suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder) {
     spotify.api { it.albums.getAlbum(albumId, Market.WS) }?.let { album ->
+        if(album.albumType == AlbumResultType.Single && album.totalTracks == 1) {
+            album.tracks.first()?.toFullTrack(Market.WS)?.let { track -> buildTrackEmbed(track, builder) }
+            return
+        }
+
         val artists = album.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
         val year = album.releaseDate.year
+        val artworkUrl = album.images?.get(0)?.url ?: ""
+        var type = album.albumType.name.qapitalize()
+
+        if(album.albumType == AlbumResultType.Single && album.totalTracks > 1 && album.tracks.any { it?.name != album.name }) {
+            type = "EP" // this isn't always accurate but works pretty well most of the time
+        }
 
         builder.author {
             this.name = artists
@@ -135,41 +148,54 @@ suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder) {
         }
         builder.title = album.name
         builder.url = album.externalUrls.spotify
+        builder.color = getArtworkColor(artworkUrl)
         builder.thumbnail {
-            url = album.images?.get(0)?.url ?: ""
+            url = artworkUrl
         }
-        builder.description = "${album.albumType.name.qapitalize()} • ${album.label} • ${album.totalTracks} tracks • $year"
+        builder.description = "$type • ${album.label} • ${album.totalTracks} tracks • $year"
     }
 }
 
-suspend fun buildSingleEmbed(singleId: String, builder: EmbedBuilder) {
-    spotify.api { it.tracks.getTrack(singleId, Market.WS) }?.let { track ->
-        val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
-        val year = track.album.releaseDate?.year
-        val type = when(track.album.albumType) {
-            AlbumResultType.Single -> "Single"
-            else -> track.album.name
-        }
+suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder) {
+    val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
+    val year = track.album.releaseDate?.year
+    val artworkUrl = track.album.images?.get(0)?.url ?: ""
+    var type = when(track.album.albumType) {
+        AlbumResultType.Single -> "Single"
+        else -> track.album.name
+    }
 
-        builder.author {
-            this.name = artists
-            this.icon = track.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
-        }
-        builder.title = track.name
-        builder.url = track.externalUrls.spotify
-        builder.thumbnail {
-            url = track.album.images?.get(0)?.url ?: ""
-        }
-        builder.description = "$type • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
+    if((track.album.totalTracks ?: 1) > 1 && track.name != track.album.name) {
+        type = track.album.name
+    }
+
+    builder.author {
+        this.name = artists
+        this.icon = track.artists.first().toFullArtist()?.images?.get(0)?.url ?: ""
+    }
+    builder.title = track.name
+    builder.url = track.externalUrls.spotify
+    builder.color = getArtworkColor(artworkUrl)
+    builder.thumbnail {
+        url = artworkUrl
+    }
+    builder.description = "$type • ${track.album.toAlbum().label} • ${track.getDurationFriendly()} • $year"
+}
+
+suspend fun buildTrackEmbed(singleId: String, builder: EmbedBuilder) {
+    spotify.api { it.tracks.getTrack(singleId, Market.WS) }?.let { track ->
+        buildTrackEmbed(track, builder)
     }
 }
 
 suspend fun buildArtistEmbed(artistId: String, builder: EmbedBuilder) {
     spotify.api { it.artists.getArtist(artistId) }?.let { artist ->
+        val coverUrl = artist.images?.get(0)?.url ?: ""
         builder.title = artist.name
         builder.url = artist.externalUrls.spotify
+        builder.color = getArtworkColor(coverUrl)
         builder.thumbnail {
-            url = artist.images?.get(0)?.url ?: ""
+            url = coverUrl
         }
 
         val genres = if(artist.genres.isNotEmpty()) artist.genres.joinToString(", ", postfix = " • ") else ""
