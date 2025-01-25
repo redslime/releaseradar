@@ -29,23 +29,21 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
         val channel = getChannelInput(interaction)!!
         val radarId = db.getRadarId(channel)
 
-        spotify.getLatestRelease(artist.id)?.also { sa ->
-            sa.toFullAlbum()?.also { album ->
-                try {
-                    postAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
-                    response.respond {
-                        embed {
-                            success()
-                            description = "Posted latest release of ${artist.name} to ${channel.mention}"
-                        }
+        spotify.getLatestRelease(artist.id)?.toAlbum()?.also { album ->
+            try {
+                postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                response.respond {
+                    embed {
+                        success()
+                        description = "Posted latest release of ${artist.name} to ${channel.mention}"
                     }
-                } catch (ex: RestRequestException) {
-                    if (ex.status.code == 403)
-                        respondErrorEmbed(response, "No permission to post messages in ${channel.mention} :(")
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                    respondErrorEmbed(response, "Something went wrong, please double check permissions etc")
                 }
+            } catch (ex: RestRequestException) {
+                if (ex.status.code == 403)
+                    respondErrorEmbed(response, "No permission to post messages in ${channel.mention} :(")
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                respondErrorEmbed(response, "Something went wrong, please double check permissions etc")
             }
         }
     }
@@ -71,7 +69,7 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
             val album = spotify.getAlbumInstance(id)
 
             if(album != null) {
-                postAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
                 response.respond {
                     embed {
                         success()

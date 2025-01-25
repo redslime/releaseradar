@@ -1,10 +1,12 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.*
+import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
 import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kord.rest.builder.message.MessageBuilder
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -13,11 +15,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
 import xyz.redslime.releaseradar.util.emojiRegex
-import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.util.*
 
 /**
  * @author redslime
@@ -26,7 +26,7 @@ import java.util.*
 
 fun ReleaseDate.getFriendly(): String {
     if(day != null && month != null)
-        return "%02d-%02d-$year".format(day, month)
+        return "$year-%02d-%02d".format(month, day)
     return "$year"
 }
 
@@ -46,7 +46,11 @@ fun SimpleAlbum.getReleaseDateTime(): LocalDateTime {
     return LocalDateTime.of(LocalDate.parse(releaseDate!!.getFriendlyISO()).toJavaLocalDate(), LocalTime.of(0, 0, 0, 0))
 }
 
-suspend fun SimpleAlbum.toAlbum(): Album {
+fun Album.getReleaseDateTime(): LocalDateTime {
+    return LocalDateTime.of(LocalDate.parse(releaseDate.getFriendlyISO()).toJavaLocalDate(), LocalTime.of(0, 0, 0, 0))
+}
+
+suspend fun SimpleAlbum.toAlbum(): Album? {
     return spotify.toFullAlbum(this)
 }
 
@@ -115,6 +119,11 @@ fun Artist.toSimpleArtist(): SimpleArtist {
     return SimpleArtist(getExternalUrls(), href, id, uri, name, type)
 }
 
+suspend fun SimpleArtist.toArtist(): Artist? {
+    val id = this.id
+    return spotify.api { it.artists.getArtist(id) }
+}
+
 fun Duration.prettyPrint(): String {
     return this.toString()
         .substring(2)
@@ -150,5 +159,29 @@ fun SpotifyRatelimitedException.getTime(): Long {
 }
 
 fun Track.getDurationFriendly(): String {
-    return (SimpleDateFormat("mm:ss")).format(Date(this.durationMs.toLong()))
+    val dur = Duration.ofMillis(this.durationMs.toLong())
+
+    if(dur.toHoursPart() > 0)
+        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+    return "%02d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
+}
+
+suspend fun SimpleTrack.toTrack(): Track? {
+    val id = this.id
+    return spotify.api { it.tracks.getTrack(id, Market.WS) }
+}
+
+/**
+ * Int value = time in ms
+ */
+fun Int.getDurationFriendly(): String {
+    val dur = Duration.ofMillis(this.toLong())
+
+    if(dur.toHoursPart() > 0)
+        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+    return "%02d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
+}
+
+fun MessageBuilder.addEmbed(eb: EmbedBuilder) {
+    embeds?.add(eb) ?: run { embeds = mutableListOf(eb) }
 }

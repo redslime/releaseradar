@@ -53,10 +53,8 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                     }
                     addInteractionButton(this, ButtonStyle.Secondary, "Print latest release") {
                         val re = it.deferEphemeralResponse()
-                        spotify.getLatestRelease(artist.id)?.let {
-                            it.toFullAlbum()?.let {
-                                postAlbum(it, channel.fetchChannel() as MessageChannelBehavior, radarId)
-                            }
+                        spotify.getLatestRelease(artist.id)?.toAlbum()?.let { album ->
+                            postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
                         }
                         re.delete()
                     }

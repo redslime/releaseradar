@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.formatPercentage
 import xyz.redslime.releaseradar.interactionManager
 import xyz.redslime.releaseradar.spotify
+import xyz.redslime.releaseradar.toTrack
 import xyz.redslime.releaseradar.util.*
 
 /**
@@ -95,7 +96,9 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
                         val analysis = spotify.api { api ->
                             api.tracks.getAudioFeatures(track.id)
                         }
-                        respondAnalysis(response, track.toFullTrack(Market.WS)!!, analysis)
+                        track.toTrack()?.let { t ->
+                            respondAnalysis(response, t, analysis)
+                        }
                     }
                 }
             }

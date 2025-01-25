@@ -1,18 +1,20 @@
 package xyz.redslime.releaseradar.task
 
 import com.adamratzman.spotify.models.Album
-import com.adamratzman.spotify.models.SimpleAlbum
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
-import dev.kord.rest.builder.message.embed
+import dev.kord.rest.builder.message.EmbedBuilder
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.references.POST_LATER
-import xyz.redslime.releaseradar.util.*
+import xyz.redslime.releaseradar.util.Timezone
+import xyz.redslime.releaseradar.util.coroutine
+import xyz.redslime.releaseradar.util.getArtworkColor
+import xyz.redslime.releaseradar.util.getMillisUntilTopOfTheHour
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.*
@@ -51,7 +53,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         val tzz = tz ?: Timezone.entries.firstOrNull { ZonedDateTime.now(it.zone).hour == 0 }
 
         tzz?.let { timezone ->
-            val userDms = mutableMapOf<Long, MutableList<Album>>()
+            val userDms = mutableMapOf<Long, MutableList<Pair<Album, EmbedBuilder>>>()
             val albumIds = entries.filter { it.timezone == timezone }.map { it.albumId }.distinct()
 
             if(albumIds.isNotEmpty())
@@ -59,13 +61,18 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
             try {
                 spotify.getAlbumsBatch(albumIds).forEach { album ->
+                    // analyse album art just once here
+                    val embedColor = getArtworkColor(album.images?.get(0)?.url ?: "")
+
                     entries.filter { (it.timezone == timezone) && it.albumId == album.id }
                         .forEach { entry ->
                             if (entry.dm) {
-                                userDms.getOrPut(entry.channelId) { mutableListOf() }.add(album)
+                                val embed = buildAlbumEmbed(album, radarPost = false, color = embedColor)
+                                userDms.getOrPut(entry.channelId) { mutableListOf() }.add(Pair(album, embed))
                             } else {
                                 client.getChannel(Snowflake(entry.channelId))?.let { channel ->
-                                    postAlbum(album, channel as MessageChannelBehavior, db.getRadarId(channel))
+                                    val embed = buildAlbumEmbed(album, radarPost = true, color = embedColor)
+                                    postRadarAlbum(album, embed, channel as MessageChannelBehavior, db.getRadarId(channel))
                                 }
                             }
                         }
@@ -84,7 +91,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
 
                     if (!playlistHandler.disabled && (list.size >= 5 || playlistHandler.always)) {
                         try {
-                            playlistHandler.postAlbums(user, userRec, list)
+                            playlistHandler.postAlbums(user, userRec, list.map { it.first })
                         } catch (ex: Exception) {
                             logger.error("Tried to create/edit playlist for ${user.username}, failed:", ex)
                             sendIndividualLinks(user, skipExtended, list)
@@ -110,7 +117,7 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         }
     }
 
-    fun add(album: SimpleAlbum, channelId: Long, timezone: Timezone) {
+    fun add(album: Album, channelId: Long, timezone: Timezone) {
         add(Entry(album.id, channelId, timezone, false))
     }
 
@@ -141,37 +148,31 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
         return false
     }
 
-    private suspend fun sendIndividualLinks(user: User, skipExtended: Boolean, albums: MutableList<Album>) {
-        val links = mutableListOf<String>()
+    private suspend fun sendIndividualLinks(user: User, skipExtended: Boolean, albums: MutableList<Pair<Album, EmbedBuilder>>) {
+        val embeds = mutableListOf<EmbedBuilder>()
 
         if(skipExtended) {
             // this makes only sense here if there are 2 tracks on the album, one of them being the extended one
-            albums.forEach { album ->
+            albums.forEach { (album, embed) ->
                 if(album.totalTracks == 2 && album.tracks.count { it?.name?.lowercase()?.contains("extended") == true } == 1) {
                     album.tracks.filterNotNull().find { !it.name.lowercase().contains("extended") }?.let {
-                        it.externalUrls.spotify?.let { url -> links.add(url) }
+                        embeds.add(buildTrackEmbed(it))
                     }
                 } else {
-                    album.getSmartLink()?.let { links.add(it) }
+                    album.getSmartLink()?.let { embeds.add(embed) }
                 }
             }
         } else {
-            albums.mapNotNull { it.getSmartLink() }.forEach { links.add(it) }
+            albums.forEach { (_, embed) ->
+                embeds.add(embed)
+            }
         }
 
         user.getDmChannelOrNull()?.let {
-            links.chunked(10).forEach { chunk ->
+            embeds.chunked(10).forEach { chunk ->
                 it.createMessage {
-                    chunk.forEach { url ->
-                        embed {
-                            if(trackRegex.matches(url)) {
-                                val trackId = url.replace(trackRegex, "$1")
-                                buildTrackEmbed(trackId, this)
-                            } else {
-                                val albumId = url.replace(albumRegex, "$1")
-                                buildAlbumEmbed(albumId, this)
-                            }
-                        }
+                    chunk.forEach { embed ->
+                        addEmbed(embed)
                     }
                 }
             }

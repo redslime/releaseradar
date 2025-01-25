@@ -2,17 +2,13 @@ package xyz.redslime.releaseradar.command
 
 import com.adamratzman.spotify.models.Artist
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.response.createPublicFollowup
+import dev.kord.core.behavior.interaction.response.createEphemeralFollowup
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
+import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.embed
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import xyz.redslime.releaseradar.buildAlbum
-import xyz.redslime.releaseradar.error
-import xyz.redslime.releaseradar.spotify
-import xyz.redslime.releaseradar.toAlbum
+import xyz.redslime.releaseradar.*
 
 /**
  * @author redslime
@@ -26,33 +22,38 @@ class LatestCommand : ArtistCommand("latest", "Gets the latest release of the sp
 
     override suspend fun handleArtist(artist: Artist, response: DeferredMessageInteractionResponseBehavior, interaction: ChatInputCommandInteraction) {
         val latest = spotify.getLatestRelease(artist.id)
-        val album = latest?.toAlbum()
 
-        response.respond {
-            embed { buildAlbum(album, this, footer = false) }
+        latest?.toAlbum()?.let { album ->
+            val eb = EmbedBuilder()
+            buildAlbumEmbed(album, eb)
+
+            response.respond {
+                addEmbed(eb)
+            }
         }
     }
 
     override suspend fun handleArtists(artists: List<Artist>, response: DeferredMessageInteractionResponseBehavior, unresolved: List<String>, interaction: ChatInputCommandInteraction) {
-        val first = spotify.getLatestRelease(artists.first().id)
-        val firstAlbum = first?.toAlbum()
-
         val re = response.respond {
-            embed { buildAlbum(firstAlbum, this, footer = false) }
+            artists.take(10).forEach { artist ->
+                spotify.getLatestRelease(artist.id)?.toAlbum()?.let { album ->
+                    addEmbed(buildAlbumEmbed(album))
+                }
+            }
         }
 
-        artists.stream().skip(1).forEach {
-            runBlocking {
-                launch {
-                    re.createPublicFollowup {
-                        embed { buildAlbum(spotify.getLatestRelease(it.id)?.toAlbum(), this, footer = false) }
+        artists.stream().skip(10).toList().chunked(10).forEach { artistList ->
+            re.createEphemeralFollowup {
+                artistList.forEach { artist ->
+                    spotify.getLatestRelease(artist.id)?.toAlbum()?.let { album ->
+                        addEmbed(buildAlbumEmbed(album))
                     }
                 }
             }
         }
 
         if(unresolved.isNotEmpty()) {
-            re.createPublicFollowup {
+            re.createEphemeralFollowup {
                 embed {
                     error()
                     title = ":x: Failed to resolve artists:"

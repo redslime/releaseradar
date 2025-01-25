@@ -161,11 +161,9 @@ class SpotifyClient {
         // with cache we can possibly look up the uid from memory
         if(useCache) {
             names.forEach { name ->
-                cache.findArtistRecByName(name, true).firstOrNull()?.let { rec ->
-                    rec.id?.let { artistId ->
-                        removeNamesLater.add(name) // dont need to lookup this name later
-                        urlList.add("artist/$artistId") // todo this kinda scuffed
-                    }
+                cache.findArtistRecByName(name, true).firstOrNull()?.id?.let { artistId ->
+                    removeNamesLater.add(name) // dont need to lookup this name later
+                    urlList.add("artist/$artistId") // todo this kinda scuffed
                 }
             }
         }
@@ -274,9 +272,9 @@ class SpotifyClient {
         return null
     }
 
-    suspend fun toFullAlbum(album: SimpleAlbum): Album {
+    suspend fun toFullAlbum(album: SimpleAlbum): Album? {
         return api { api ->
-            api.albums.getAlbum(album.id, Market.WS)!!
+            api.albums.getAlbum(album.id, Market.WS)
         }
     }
 }

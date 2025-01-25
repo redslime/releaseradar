@@ -148,13 +148,16 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             return
         }
 
+        val artworkUrl = final.keys.firstOrNull()?.images?.firstOrNull()?.url.toString()
+
         response.respond {
             embed {
                 title = "$op ${final.size}$artistf$labl tracks of ${channel.mention} (last $days days)"
                 description = ""
                 thumbnail {
-                    url = final.keys.firstOrNull()?.images?.firstOrNull()?.url.toString()
+                    url = artworkUrl
                 }
+                color = getArtworkColor(artworkUrl)
 
                 final.filter { it.key != null }.onEachIndexed { i, (album, score) ->
                     val artists = album?.artists?.filter { it.name != null }?.joinToString(" & ") { it.name!! }

@@ -9,10 +9,7 @@ import dev.kord.core.entity.channel.TextChannel
 import kotlinx.coroutines.*
 import kotlinx.datetime.toKotlinInstant
 import org.apache.logging.log4j.Logger
-import xyz.redslime.releaseradar.DiscordClient
-import xyz.redslime.releaseradar.plural
-import xyz.redslime.releaseradar.spotify
-import xyz.redslime.releaseradar.toAlbum
+import xyz.redslime.releaseradar.*
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -66,12 +63,10 @@ fun getStartOfToday(): kotlinx.datetime.Instant {
 
 fun extractSpotifyLink(msg: Message): String? {
     msg.data.embeds.forEach {
-        it.url.value?.let { url -> return url } // this handles the standard spotify embed
-        it.description.value?.let { desc -> // and this our custom embed
-            desc.lines().forEach { line ->
-                if (line.matches(albumRegex) || line.matches(trackRegex)) {
-                    return line
-                }
+        it.url.value?.let { url -> return url } // this handles the standard spotify embed (and new custom embed)
+        it.description.value?.lines()?.forEach { line -> // and this our custom (legacy) embed
+            if (line.matches(albumRegex) || line.matches(trackRegex)) {
+                return line
             }
         }
     }
@@ -82,11 +77,9 @@ fun extractSpotifyLink(msg: Message): String? {
 fun extractAlbumId(msg: Message): String? {
     msg.data.embeds.forEach {
         it.url.value?.let { url -> return url } // this handles the standard spotify embed
-        it.description.value?.let { desc -> // and this our custom embed
-            desc.lines().forEach { line ->
-                if (line.matches(albumRegex)) {
-                    return line.replace(albumRegex, "$1")
-                }
+        it.description.value?.lines()?.forEach { line -> // and this our custom embed
+            if (line.matches(albumRegex) || line.matches(trackRegex)) {
+                return line.replace(albumRegex, "$1")
             }
         }
     }

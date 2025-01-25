@@ -42,28 +42,26 @@ class CollectRemindersCommand: AdminCommand("collectreminders", "Looks for remin
         }
 
         cache.getAllActiveRadars().forEach { id ->
-            interaction.kord.getChannel(Snowflake(id))?.let { ch ->
-                ch.asChannelOrNull()?.let { channel ->
-                    if(channel is MessageChannelBehavior) {
-                        channel.data.lastMessageId.value?.let { lastMessage ->
-                            try {
-                                channel.getMessagesBefore(lastMessage)
-                                    .takeWhile { it.timestamp > today }
-                                    .filter { it.author == interaction.kord.getSelf() }
-                                    .toList()
-                                    .forEach { message ->
-                                        extractSpotifyLink(message)?.let { url ->
-                                            message.getReactors(reminderEmoji)
-                                                .filter { it != interaction.kord.getSelf() }
-                                                .toList().forEach {
-                                                    if (addPostLater(url, it))
-                                                        added++
-                                                }
-                                        }
+            interaction.kord.getChannel(Snowflake(id))?.asChannelOrNull()?.let { channel ->
+                if(channel is MessageChannelBehavior) {
+                    channel.data.lastMessageId.value?.let { lastMessage ->
+                        try {
+                            channel.getMessagesBefore(lastMessage)
+                                .takeWhile { it.timestamp > today }
+                                .filter { it.author == interaction.kord.getSelf() }
+                                .toList()
+                                .forEach { message ->
+                                    extractSpotifyLink(message)?.let { url ->
+                                        message.getReactors(reminderEmoji)
+                                            .filter { it != interaction.kord.getSelf() }
+                                            .toList().forEach {
+                                                if (addPostLater(url, it))
+                                                    added++
+                                            }
                                     }
-                            } catch (ex: Exception) {
-                                logger.error("Failed to get last messages in $id", ex)
-                            }
+                                }
+                        } catch (ex: Exception) {
+                            logger.error("Failed to get last messages in $id", ex)
                         }
                     }
                 }

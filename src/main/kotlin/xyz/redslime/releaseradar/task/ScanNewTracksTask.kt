@@ -1,6 +1,6 @@
 package xyz.redslime.releaseradar.task
 
-import com.adamratzman.spotify.models.SimpleAlbum
+import com.adamratzman.spotify.models.Album
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
@@ -44,17 +44,18 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
             printToDiscord(client, LOGGER, "---- Checking new releases ----")
             val artists = cache.getAllArtistsOnRadars()
             val count = AtomicInteger(0)
-//            val albums = artists.flatMap { spotify.getAlbumsAfter(it.id!!, it.lastRelease) }.toList().distinctBy { it.id }
-            val channel = Channel<SimpleAlbum>(Channel.UNLIMITED)
+            val channel = Channel<Album>(Channel.UNLIMITED)
 
             // use a channel to preserve first-come-first-serve order (most popular artist releases are posted first)
             coroutine {
                 val postedAlbums = mutableSetOf<String>()
 
-                spotify.getAlbumsAfterFlow(artists).collect { album ->
-                    if(postedAlbums.add(album.id)) {
-                        count.getAndIncrement()
-                        channel.send(album)
+                spotify.getAlbumsAfterFlow(artists).collect { sa ->
+                    sa.toAlbum()?.let { album ->
+                        if(postedAlbums.add(album.id)) {
+                            count.getAndIncrement()
+                            channel.send(album)
+                        }
                     }
                 }
                 channel.close()
@@ -65,6 +66,9 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                 val artistIds = album.artists.map { it.id }.distinct()
                 val radars = cache.getAllRadarsWithArtists(artistIds)
                 val excludedRadar = cache.getAllRadarsWithExcludedArtists(artistIds)
+
+                // prepare album information
+                val albumEmbed = buildAlbumEmbed(album, true)
 
                 radars.forEach { radarId ->
                     cache.getChannelId(radarId)?.also { channelId ->
@@ -79,7 +83,7 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
 
                             if(timezone == Timezone.ASAP) {
                                 LOGGER.info("Posting ${album.name} now in $channelId")
-                                postAlbum(album.toAlbum(), ch, radarId)
+                                postRadarAlbum(album, albumEmbed, ch, radarId)
                             } else {
                                 LOGGER.info("Scheduled to post ${album.name} later in $channelId (${timezone.name})")
                                 DiscordClient.postLaterTask.add(album, channelId, timezone)
