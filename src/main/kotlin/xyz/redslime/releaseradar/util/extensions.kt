@@ -162,8 +162,8 @@ fun Track.getDurationFriendly(): String {
     val dur = Duration.ofMillis(this.durationMs.toLong())
 
     if(dur.toHoursPart() > 0)
-        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
-    return "%02d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
+        return "%d:%01d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+    return "%01d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
 }
 
 suspend fun SimpleTrack.toTrack(): Track? {
@@ -178,8 +178,8 @@ fun Int.getDurationFriendly(): String {
     val dur = Duration.ofMillis(this.toLong())
 
     if(dur.toHoursPart() > 0)
-        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
-    return "%02d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
+        return "%d:%01d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+    return "%01d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
 }
 
 fun MessageBuilder.addEmbed(eb: EmbedBuilder) {

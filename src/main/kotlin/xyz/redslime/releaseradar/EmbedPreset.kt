@@ -123,26 +123,26 @@ suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Bool
 
     if(radarPost) {
         var tracklist = ""
-        var duration = 0
+        var durTotal = 0
 
         album.tracks.forEachIndexed { index, simpleTrack ->
             if(simpleTrack != null) {
                 val extra = simpleTrack.artists.stream().filter { !album.artists.contains(it) }.toList()
-                duration += simpleTrack.durationMs
+                val dur = simpleTrack.durationMs.getDurationFriendly()
+                durTotal += simpleTrack.durationMs
 
                 tracklist += if(simpleTrack.artists.size > 1 && extra.isNotEmpty()) {
-                    "${index+1}. ${simpleTrack.name} (w/ ${extra.filter { it.name != null }.joinToString(" & ") { it.name!! }})\n"
+                    "${index+1}. ${simpleTrack.name} (w/ ${extra.filter { it.name != null }.joinToString(" & ") { it.name!! }}) ($dur)\n"
                 } else {
-                    "${index+1}. ${simpleTrack.name}\n"
+                    "${index+1}. ${simpleTrack.name} ($dur)\n"
                 }
             }
         }
 
-//        builder.description = "Label: $label\n" +
-//                "Release Date: $date\n" +
-//                "Duration: ${duration.getDurationFriendly()}\n\n" +
-//                tracklist
-        builder.description = "$tracklist\n$date • $label • ${duration.getDurationFriendly()}"
+//        builder.description = "$tracklist\n$date • $label • ${durTotal.getDurationFriendly()}"
+        builder.description = tracklist +
+                "\n$label\n" +
+                "$date • ${durTotal.getDurationFriendly()}"
         builder.footer {
             text = "Hit ⏰ for a DM when it's out in your timezone"
         }
@@ -191,10 +191,9 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
     }
 
     if(radarPost) {
-//        builder.description = "Label: $label\n" +
-//                "Release Date: $date\n" +
-//                "Duration: ${track.getDurationFriendly()}"
-        builder.description = "$date • $label • ${track.getDurationFriendly()}"
+//        builder.description = "$date • $label • ${track.getDurationFriendly()}"
+        builder.description = "$label\n" +
+                "$date • ${track.getDurationFriendly()}"
         builder.footer {
             text = "Hit ⏰ for a DM when it's out in your timezone"
         }
