@@ -147,7 +147,8 @@ suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Bool
             text = "Hit ⏰ for a DM when it's out in your timezone"
         }
     } else {
-        builder.description = "$type • $label • ${album.totalTracks} tracks • $year"
+        val dur = album.tracks.sumOf { it?.durationMs ?: 0 }.getDurationFriendly()
+        builder.description = "$type • $label • ${album.totalTracks} tracks • $dur • $year"
     }
 }
 
