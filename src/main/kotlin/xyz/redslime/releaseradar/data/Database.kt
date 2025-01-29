@@ -353,7 +353,7 @@ class Database(private val cache: Cache, private val host: String, private val u
                 .set(CONFIG_CHANNEL.CHANNEL_ID, channelId)
                 .onDuplicateKeyUpdate()
                 .set(CONFIG_CHANNEL.CHANNEL_ID, channelId)
-                .execute() == 1
+                .execute() > 0
         } ?: false
     }
 

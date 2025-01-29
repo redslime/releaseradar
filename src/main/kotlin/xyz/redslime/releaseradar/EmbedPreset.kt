@@ -74,9 +74,7 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
             warning()
             title = "Please select your timezone"
             description = "This is necessary so you receive track reminders at the correct time"
-            footer {
-                text = "You can change this anytime by typing /mytimezone"
-            }
+            footer("You can change this anytime by typing /mytimezone")
         }
         actionRow {
             stringSelect("timezone-prompt") {
@@ -86,11 +84,6 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
             }
         }
     }
-}
-
-fun buildNoSuchArtist(name: String, builder: EmbedBuilder) {
-    builder.error()
-    builder.title = ":x: No artist named $name found"
 }
 
 suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Boolean = false, color: Color? = null) {
@@ -112,7 +105,7 @@ suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Bool
 
     builder.author {
         this.name = artists
-        this.icon = album.artists.first().toArtist()?.images?.get(0)?.url ?: ""
+        this.icon = album.artists.first().toArtist()?.images?.getOrNull(0)?.url
     }
     builder.title = album.name
     builder.url = album.externalUrls.spotify
@@ -168,7 +161,7 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
     val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
     val date = track.album.releaseDate?.getFriendly()
     val year = track.album.releaseDate?.year
-    val artworkUrl = track.album.images?.get(0)?.url ?: ""
+    val artworkUrl = track.album.images?.getOrNull(0)?.url ?: ""
     val label = track.album.toAlbum()?.label
     var type = when(track.album.albumType) {
         AlbumResultType.Single -> "Single"
@@ -181,7 +174,7 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
 
     builder.author {
         this.name = artists
-        this.icon = track.artists.first().toArtist()?.images?.get(0)?.url ?: ""
+        this.icon = track.artists.first().toArtist()?.images?.getOrNull(0)?.url
     }
     builder.title = track.name
     builder.url = if(radarPost) track.album.externalUrls.spotify else track.externalUrls.spotify
@@ -216,7 +209,7 @@ suspend fun buildTrackEmbed(track: SimpleTrack): EmbedBuilder {
 
 suspend fun buildArtistEmbed(artistId: String, builder: EmbedBuilder) {
     spotify.api { it.artists.getArtist(artistId) }?.let { artist ->
-        val coverUrl = artist.images?.get(0)?.url ?: ""
+        val coverUrl = artist.images?.getOrNull(0)?.url ?: ""
         builder.title = artist.name
         builder.url = artist.externalUrls.spotify
         builder.color = getArtworkColor(coverUrl)

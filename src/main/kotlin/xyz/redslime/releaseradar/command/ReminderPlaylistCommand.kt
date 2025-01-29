@@ -13,9 +13,10 @@ import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.footer
 import xyz.redslime.releaseradar.playlist.PlaylistDuration
 import xyz.redslime.releaseradar.playlist.PlaylistHandler
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.successEmbed
 
 /**
  * @author redslime
@@ -62,15 +63,9 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
                     handler.disabled = true
                     db.setUserPlaylistHandler(userId, handler)
 
-                    response.respond {
-                        embed {
-                            success()
-                            title = "Disabled reminder playlist"
-                            description = "Reminders will be posted individually from now on"
-                            footer {
-                                text = "To change these settings, just do /reminderplaylist again"
-                            }
-                        }
+                    respondSuccessEmbed(response, "Disabled reminder playlist") {
+                        description = "Reminders will be posted individually from now on"
+                        footer("To change these settings, just do /reminderplaylist again")
                     }
                 }
             }
@@ -159,13 +154,9 @@ class ReminderPlaylistCommand: Command("reminderplaylist", "Setup a playlist to 
         db.setUserPlaylistHandler(user.id.asLong(), handler)
         fo?.delete()
         re?.createEphemeralFollowup {
-            embed {
-                success()
-                title = ":white_check_mark: Reminder Playlist Setup Complete!"
+            successEmbed(":white_check_mark: Reminder Playlist Setup Complete!") {
                 description = "Congratulations! Your playlist settings were saved successfully."
-                footer {
-                    text = "To change these settings, just do /reminderplaylist again"
-                }
+                footer( "To change these settings, just do /reminderplaylist again")
             }
         }
     }

@@ -4,7 +4,6 @@ import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.createPublicFollowup
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.core.entity.interaction.followup.PublicFollowupMessage
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
@@ -40,12 +39,7 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
         }
 
         if(map.isEmpty()) {
-            re.respond {
-                embed {
-                    success()
-                    title = "No duplicated artists found!"
-                }
-            }
+            respondSuccessEmbed(re, "No duplicate artists found!")
             return
         }
 
@@ -66,18 +60,14 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
 
         val messageParts = mutableListOf<PublicFollowupMessage>()
         val rep = desc.chunked({ first ->
-            re.respond {
-                embed {
-                    success()
-
-                    title = if(channel == null) {
-                        "Duplicated ${plural("artist", map.size)} (${map.size}):"
-                    } else {
-                        "Duplicated ${plural("artist", map.size)} from ${channel.mention} (${map.size}):"
-                    }
-
-                    description = first
+            respondSuccessEmbed(re) {
+                title = if(channel == null) {
+                    "Duplicated ${plural("artist", map.size)} (${map.size}):"
+                } else {
+                    "Duplicated ${plural("artist", map.size)} from ${channel.mention} (${map.size}):"
                 }
+
+                description = first
             }
         }, { _, first, chunk ->
             messageParts.add(first.createPublicFollowup {
@@ -89,11 +79,7 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
 
         if(channel != null) {
             rep.createPublicFollowup {
-                embed {
-                    success()
-                    title = "Take cleanup measures (optional)"
-                    description = "You can automatically remove duplicates below:"
-                }
+                successEmbed("Take cleanup measures (optional)", "You can automatically remove duplicates below:")
                 actionRow {
                     addInteractionButton(this, ButtonStyle.Secondary, "Remove from #${channel.name}") {
                         val repp = it.deferPublicResponse()
@@ -101,12 +87,7 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
 
                         db.removeArtistsFromRadar(list, channel)
                         it.message.delete()
-                        repp.respond {
-                            embed {
-                                success()
-                                title = "Removed ${pluralPrefixed("duplicate", map.size)} from ${channel.mention}"
-                            }
-                        }
+                        respondSuccessEmbed(repp, "Removed ${pluralPrefixed("duplicate", map.size)} from ${channel.mention}")
                     }
                     addInteractionButton(this, ButtonStyle.Secondary, "Remove from other channels") {
                         val repp = it.deferPublicResponse()
@@ -124,12 +105,7 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
                         }
 
                         it.message.delete()
-                        repp.respond {
-                            embed {
-                                success()
-                                title = "Removed ${pluralPrefixed("duplicate", map.size)} from other channels"
-                            }
-                        }
+                        respondSuccessEmbed(repp, "Removed ${pluralPrefixed("duplicate", map.size)} from other channels")
                     }
                     addInteractionButton(this, ButtonStyle.Danger, "Cancel") {
                         it.message.delete()

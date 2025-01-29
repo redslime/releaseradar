@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.cache
-import xyz.redslime.releaseradar.error
 import xyz.redslime.releaseradar.spotify
+import xyz.redslime.releaseradar.thumbnail
 import xyz.redslime.releaseradar.util.*
 import java.time.Duration
 import kotlin.time.toKotlinDuration
@@ -119,11 +119,8 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         }
 
         if(sorted.isEmpty()) {
-            response.respond {
-                embed {
-                    error()
-                    title = "Found no recent tracks with ratings in ${channel.mention}"
-                }
+            respondErrorEmbed(response, "Found no recent tracks with ratings in ${channel.mention}") {
+                description = "Start reacting so tracks show up here!"
             }
             return
         }
@@ -139,11 +136,8 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         }
 
         if(final.isEmpty()) {
-            response.respond {
-                embed {
-                    title = "$op$artistf tracks$labl of ${channel.mention} (last $days days)"
-                    description = "None... Start reacting so tracks show up here!"
-                }
+            respondEmbed(response, "$op$artistf tracks$labl of ${channel.mention} (last $days days)") {
+                description = "None... Start reacting so tracks show up here!"
             }
             return
         }
@@ -154,9 +148,7 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             embed {
                 title = "$op ${final.size}$artistf$labl tracks of ${channel.mention} (last $days days)"
                 description = ""
-                thumbnail {
-                    url = artworkUrl
-                }
+                thumbnail(artworkUrl)
                 color = getArtworkColor(artworkUrl)
 
                 final.filter { it.key != null }.onEachIndexed { i, (album, score) ->

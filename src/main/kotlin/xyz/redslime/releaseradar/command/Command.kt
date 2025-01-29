@@ -1,15 +1,15 @@
 package xyz.redslime.releaseradar.command
 
-import com.adamratzman.spotify.models.Artist
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.channel.ResolvedChannel
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
+import dev.kord.core.entity.interaction.response.MessageInteractionResponse
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.channel
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.embed
+import dev.kord.rest.builder.message.EmbedBuilder
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.Interactable
@@ -47,7 +47,7 @@ abstract class Command(val name: String, val description: String, val perm: Perm
     protected fun addTimezoneInput(builder: ChatInputCreateBuilder, desc: String, req: Boolean = true) {
         builder.string("timezone", desc) {
             required = req
-            Timezone.values().forEach {
+            Timezone.entries.forEach {
                 choice(it.friendly, it.name)
             }
         }
@@ -57,38 +57,41 @@ abstract class Command(val name: String, val description: String, val perm: Perm
         return interaction.command.strings["timezone"]?.let { Timezone.valueOf(it) }
     }
 
-    protected suspend fun respondErrorEmbed(response: DeferredMessageInteractionResponseBehavior, title: String? = null, desc: String? = null, artistTitle: Artist? = null) {
-        response.respond {
-            embed {
-                error()
-                this.title = title
-                this.description = desc
-
-                artistTitle?.let { artist ->
-                    addArtistTitle(artist, this)
-                }
-            }
+    protected suspend fun respondEmbed(response: DeferredMessageInteractionResponseBehavior,
+                                       title: String? = null, desc: String? = null,
+                                       embed: EmbedBuilder = EmbedBuilder(),
+                                       block: EmbedBuilder.() -> Unit = {}): MessageInteractionResponse {
+        embed.title = title
+        embed.description = desc
+        block.invoke(embed)
+        return response.respond {
+            addEmbed(embed)
         }
     }
 
-    protected suspend fun respondSuccessEmbed(response: DeferredMessageInteractionResponseBehavior, desc: String,
-                                          title: String? = null, footer: String? = null, artistTitle: Artist? = null) {
-        response.respond {
-            embed {
-                success()
-                this.title = title
-                this.description = desc
+    protected suspend fun respondErrorEmbed(response: DeferredMessageInteractionResponseBehavior,
+                                            title: String? = null, desc: String? = null,
+                                            embed: EmbedBuilder = EmbedBuilder(),
+                                            block: EmbedBuilder.() -> Unit = {}): MessageInteractionResponse {
+        embed.title = title
+        embed.description = desc
+        embed.error()
+        block.invoke(embed)
+        return response.respond {
+            addEmbed(embed)
+        }
+    }
 
-                footer?.let { f ->
-                    footer {
-                        text = f
-                    }
-                }
-
-                artistTitle?.let { artist ->
-                    addArtistTitle(artist, this)
-                }
-            }
+    protected suspend fun respondSuccessEmbed(response: DeferredMessageInteractionResponseBehavior,
+                                              title: String? = null, desc: String? = null,
+                                              embed: EmbedBuilder = EmbedBuilder(),
+                                              block: EmbedBuilder.() -> Unit = {}): MessageInteractionResponse {
+        embed.title = title
+        embed.description = desc
+        embed.success()
+        block.invoke(embed)
+        return response.respond {
+            addEmbed(embed)
         }
     }
 

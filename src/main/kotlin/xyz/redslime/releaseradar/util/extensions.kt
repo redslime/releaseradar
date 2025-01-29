@@ -87,10 +87,31 @@ fun EmbedBuilder.warning() {
 fun EmbedBuilder.colorize(actual: Int, goal: Int) {
     success()
 
-    if(actual == 0)
-        error()
     if(actual < goal)
         warning()
+    if(actual == 0)
+        error()
+}
+
+fun EmbedBuilder.footer(text: String, icon: String? = null) {
+    footer {
+        this.text = text
+        this.icon = icon
+    }
+}
+
+fun EmbedBuilder.artistTitle(artist: Artist) {
+    author {
+        name = artist.name
+        icon = artist.images?.firstOrNull()?.url
+        url = artist.externalUrls.spotify
+    }
+}
+
+fun EmbedBuilder.thumbnail(url: String) {
+    thumbnail {
+        this.url = url
+    }
 }
 
 fun Channel.getDbId(): Long {
@@ -162,7 +183,7 @@ fun Track.getDurationFriendly(): String {
     val dur = Duration.ofMillis(this.durationMs.toLong())
 
     if(dur.toHoursPart() > 0)
-        return "%d:%01d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
     return "%01d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
 }
 
@@ -178,10 +199,30 @@ fun Int.getDurationFriendly(): String {
     val dur = Duration.ofMillis(this.toLong())
 
     if(dur.toHoursPart() > 0)
-        return "%d:%01d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
+        return "%d:%02d:%02d".format(dur.toHoursPart(), dur.toMinutesPart(), dur.toSecondsPart())
     return "%01d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
 }
 
 fun MessageBuilder.addEmbed(eb: EmbedBuilder) {
     embeds?.add(eb) ?: run { embeds = mutableListOf(eb) }
+}
+
+fun MessageBuilder.errorEmbed(title: String? = null, desc: String? = null,
+                              block: EmbedBuilder.() -> Unit = {}) {
+    val embed = EmbedBuilder()
+    embed.error()
+    embed.title = title
+    embed.description = desc
+    block.invoke(embed)
+    addEmbed(embed)
+}
+
+fun MessageBuilder.successEmbed(title: String? = null, desc: String? = null,
+                              block: EmbedBuilder.() -> Unit = {}) {
+    val embed = EmbedBuilder()
+    embed.success()
+    embed.title = title
+    embed.description = desc
+    block.invoke(embed)
+    addEmbed(embed)
 }

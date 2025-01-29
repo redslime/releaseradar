@@ -4,16 +4,13 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.common.entity.optional.value
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.createEphemeralFollowup
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.cache
-import xyz.redslime.releaseradar.success
 import xyz.redslime.releaseradar.util.addPostLater
 import xyz.redslime.releaseradar.util.extractSpotifyLink
 import xyz.redslime.releaseradar.util.getStartOfToday
@@ -34,12 +31,8 @@ class CollectRemindersCommand: AdminCommand("collectreminders", "Looks for remin
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
         val today = getStartOfToday()
         var added = 0
-        val re = interaction.deferEphemeralResponse().respond {
-            embed {
-                success()
-                title = "Starting collecting reminder reactions"
-            }
-        }
+
+        val re = respondSuccessEmbed(interaction.deferEphemeralResponse(), "Starting collecting reminder reactions")
 
         cache.getAllActiveRadars().forEach { id ->
             interaction.kord.getChannel(Snowflake(id))?.asChannelOrNull()?.let { channel ->

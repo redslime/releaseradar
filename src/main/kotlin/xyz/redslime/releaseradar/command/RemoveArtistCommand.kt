@@ -3,7 +3,6 @@ package xyz.redslime.releaseradar.command
 import com.adamratzman.spotify.models.Artist
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.createPublicFollowup
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.embed
@@ -28,18 +27,12 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
         val channel = cmd.channels["channel"]!!
         val rid = db.getRadarId(channel)
 
-        response.respond {
-            if(db.removeArtistFromRadar(artist, rid)) {
-                embed {
-                    success()
-                    title = "Removed ${artist.name} from radar in ${channel.mention}"
-                }
-            } else {
-                embed {
-                    error()
-                    title = "There is no artist named ${artist.name} on the radar in ${channel.mention}"
-                    description = "Check who is on the radar using the ``/list`` command!"
-                }
+        if(db.removeArtistFromRadar(artist, rid)) {
+            respondSuccessEmbed(response, "Removed ${artist.name} from radar in ${channel.mention}")
+        } else {
+            respondErrorEmbed(response) {
+                title = "There is no artist named ${artist.name} on the radar in ${channel.mention}"
+                description = "Check who is on the radar using the ``/list`` command!"
             }
         }
     }
@@ -65,11 +58,10 @@ class RemoveArtistCommand : ArtistCommand("remove", "Remove an artist from a rel
         }
 
         description.chunked({ first ->
-            response.respond {
-                embed {
-                    colorize(removed, artists.size)
-                    this.description = "Removed ${pluralPrefixed("artist", removed)} from ${channel.mention}:\n\n" + first
-                }
+            respondEmbed(response) {
+                colorize(removed, artists.size)
+                this.title = "Removed ${pluralPrefixed("artist", removed)} from ${channel.mention}:"
+                this.description = first
             }
         }, { _, first, chunk ->
             first.createPublicFollowup {

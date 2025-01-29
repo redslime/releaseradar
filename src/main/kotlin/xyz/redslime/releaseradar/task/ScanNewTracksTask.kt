@@ -5,7 +5,10 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.rest.request.RestRequestException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.*
@@ -47,18 +50,21 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
             val channel = Channel<Album>(Channel.UNLIMITED)
 
             // use a channel to preserve first-come-first-serve order (most popular artist releases are posted first)
-            coroutine {
+            CoroutineScope(SupervisorJob()).launch {
                 val postedAlbums = mutableSetOf<String>()
 
-                spotify.getAlbumsAfterFlow(artists).collect { sa ->
-                    sa.toAlbum()?.let { album ->
-                        if(postedAlbums.add(album.id)) {
-                            count.getAndIncrement()
-                            channel.send(album)
+                try {
+                    spotify.getAlbumsAfterFlow(artists).collect { sa ->
+                        sa.toAlbum()?.let { album ->
+                            if (postedAlbums.add(album.id)) {
+                                count.getAndIncrement()
+                                channel.send(album)
+                            }
                         }
                     }
+                } finally {
+                    channel.close()
                 }
-                channel.close()
             }
 
             for(album in channel) {
@@ -68,7 +74,12 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                 val excludedRadar = cache.getAllRadarsWithExcludedArtists(artistIds)
 
                 // prepare album information
-                val albumEmbed = buildAlbumEmbed(album, true)
+                val albumEmbed = try {
+                    buildAlbumEmbed(album, true)
+                } catch (ex: Exception) {
+                    LOGGER.error("Failed to build embed for ${album.id}, skipping!", ex)
+                    continue
+                }
 
                 radars.forEach { radarId ->
                     cache.getChannelId(radarId)?.also { channelId ->
@@ -90,9 +101,10 @@ class ScanNewTracksTask : Task(Duration.ofMillis(getMillisUntilMidnightNZ()), Du
                             }
                         } catch(ex: RestRequestException) {
                             if(ex.status.code == 403)
-                                LOGGER.info("Tried to post album ${album.name} to channel $channelId, missing access")
+                                LOGGER.info("Tried to post album ${album.name} to channel $channelId, missing access", ex)
                         } catch (ex: Exception) {
                             ex.printStackTrace()
+                            LOGGER.error(ex)
                         }
                     }
                 }

@@ -3,14 +3,11 @@ package xyz.redslime.releaseradar.command
 import com.adamratzman.spotify.models.Artist
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.PermissionLevel
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.cache
-import xyz.redslime.releaseradar.success
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
@@ -39,13 +36,7 @@ class FindCommand: ArtistCommand("find", "Lists all radars the specified artist 
             }
         }
 
-        response.respond {
-            embed {
-                success()
-                title = "${artist.name} is on ${pluralPrefixed("radar", count)}"
-                description = channels
-            }
-        }
+        respondSuccessEmbed(response, "${artist.name} is on ${pluralPrefixed("radar", count)}", channels)
     }
 
     override suspend fun handleArtists(

@@ -31,20 +31,15 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         val success = db.addArtistToRadar(artist, radarId)
         val included = db.includeArtistInRadar(artist, radarId)
 
-        response.respond {
-            if(success) {
-                embed {
-                    success()
+        if(success) {
+            response.respond {
+                successEmbed {
                     description = "Added to release radar in ${channel.mention}"
 
                     if(included)
                         description += "\n\n:warning: This artist was previously excluded from the radar, is now added."
 
-                    author {
-                        name = artist.name
-                        icon = artist.images?.firstOrNull()?.url
-                        url = artist.externalUrls.spotify
-                    }
+                    artistTitle(artist)
                 }
                 actionRow {
                     addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
@@ -59,16 +54,11 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                         re.delete()
                     }
                 }
-            } else {
-                embed {
-                    error()
-                    description = "Failed to add to release radar, perhaps already on the list?"
-                    author {
-                        name = artist.name
-                        icon = artist.images?.firstOrNull()?.url
-                        url = artist.externalUrls.spotify
-                    }
-                }
+            }
+        } else {
+            respondErrorEmbed(response) {
+                this.description = "Failed to add to release radar, perhaps already on the list?"
+                artistTitle(artist)
             }
         }
     }
@@ -103,13 +93,13 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
         }
 
         val finalDesc = ChunkedString()
-        finalDesc.add("Added ${pluralPrefixed("artist", added)} to ${channel.mention}:\n")
         finalDesc.addAll(description)
 
         finalDesc.chunked({ first ->
             response.respond {
                 embed {
                     colorize(added, artists.size)
+                    this.title = "Added ${pluralPrefixed("artist", added)} to ${channel.mention}:"
                     this.description = first
                 }
                 actionRow {

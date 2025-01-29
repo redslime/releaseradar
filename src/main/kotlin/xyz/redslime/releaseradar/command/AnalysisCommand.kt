@@ -14,10 +14,7 @@ import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
 import org.apache.logging.log4j.LogManager
-import xyz.redslime.releaseradar.formatPercentage
-import xyz.redslime.releaseradar.interactionManager
-import xyz.redslime.releaseradar.spotify
-import xyz.redslime.releaseradar.toTrack
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.*
 
 /**
@@ -139,9 +136,7 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
         response.respond {
             embed {
                 title = "Audio Analysis\n$artists - $name"
-                thumbnail {
-                    url = track.album.images?.get(0)?.url ?: ""
-                }
+                thumbnail(track.album.images?.get(0)?.url ?: "")
 
                 description = "\n\uD83C\uDFB8 **Acousticness**: ${analysis.acousticness.formatPercentage()}"
                 description += "\n\uD83D\uDD7A **Danceability**: ${analysis.danceability.formatPercentage()}"

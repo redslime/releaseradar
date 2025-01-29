@@ -3,10 +3,8 @@ package xyz.redslime.releaseradar.command
 import com.adamratzman.spotify.models.Artist
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.embed
 import dev.kord.rest.request.RestRequestException
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.albumRegex
@@ -32,12 +30,7 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
         spotify.getLatestRelease(artist.id)?.toAlbum()?.also { album ->
             try {
                 postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
-                response.respond {
-                    embed {
-                        success()
-                        description = "Posted latest release of ${artist.name} to ${channel.mention}"
-                    }
-                }
+                respondSuccessEmbed(response, desc =  "Posted latest release of ${artist.name} to ${channel.mention}")
             } catch (ex: RestRequestException) {
                 if (ex.status.code == 403)
                     respondErrorEmbed(response, "No permission to post messages in ${channel.mention} :(")
@@ -70,12 +63,7 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
 
             if(album != null) {
                 postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
-                response.respond {
-                    embed {
-                        success()
-                        description = "Posted ${album.name} to ${channel.mention}"
-                    }
-                }
+                respondSuccessEmbed(response, desc = "Posted ${album.name} to ${channel.mention}")
             } else
                 respondErrorEmbed(response, "Failed to find album with id $id")
         } else

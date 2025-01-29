@@ -9,9 +9,11 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.actionRow
-import dev.kord.rest.builder.message.embed
 import kotlinx.coroutines.flow.toList
-import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.PermissionLevel
+import xyz.redslime.releaseradar.asLong
+import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.successEmbed
 import xyz.redslime.releaseradar.util.emojiRegex
 
 /**
@@ -50,34 +52,24 @@ class SetReactionsCommand: Command("setreactions", "Set custom default reactions
                     db.setRadarEmotes(radarId, mentions)
 
                     response.respond {
-                        embed {
-                            success()
-                            title = "Updated default reactions in ${channel.mention}"
+                        successEmbed("Updated default reactions in ${channel.mention}") {
                             description = "Now reacting with ${like.mention} ${dislike.mention} ${heart.mention} by default"
                         }
 
                         actionRow {
                             addInteractionButton(this, ButtonStyle.Success, "Apply to all radars") {
-                                it.deferPublicResponse().respond {
-                                    db.setServerEmotes(guildId.asLong(), mentions)
-
-                                    embed {
-                                        success()
-                                        title = "Updated default reactions for all radars"
-                                        description = "Now reacting with ${like.mention} ${dislike.mention} ${heart.mention} by default everywhere"
-                                    }
+                                db.setServerEmotes(guildId.asLong(), mentions)
+                                respondSuccessEmbed(it.deferPublicResponse()) {
+                                    title = "Updated default reactions for all radars"
+                                    description = "Now reacting with ${like.mention} ${dislike.mention} ${heart.mention} by default everywhere"
                                 }
                                 it.message.delete()
                             }
                         }
                     }
                 } else {
-                    response.respond {
-                        embed {
-                            error()
-                            title = "Invalid emojis given!"
-                            description = "Please make sure all customs emojis are from this server"
-                        }
+                    respondErrorEmbed(response, "Invalid emojis given!") {
+                        description = "Please make sure all customs emojis are from this server"
                     }
                 }
             }

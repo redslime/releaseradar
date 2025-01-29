@@ -5,9 +5,8 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.on
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.commands
-import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.errorEmbed
 import xyz.redslime.releaseradar.util.coroutine
 
 /**
@@ -30,10 +29,8 @@ class CommandListener {
                                 it.handleInteraction(interaction)
                             } else {
                                 interaction.deferEphemeralResponse().respond {
-                                    embed {
-                                        error()
-                                        description =
-                                            "This command is either not available here or you don't have enough permissions."
+                                    errorEmbed {
+                                        description = "This command is either not available here or you don't have enough permissions."
                                     }
                                 }
                             }

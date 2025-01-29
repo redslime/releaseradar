@@ -8,7 +8,7 @@ import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.PermissionLevel
 import xyz.redslime.releaseradar.db
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.successEmbed
 import xyz.redslime.releaseradar.warning
 
 /**
@@ -37,10 +37,7 @@ class ClearCommand : Command("clear", "Clears the entire radar list of the speci
                     db.clearRadar(db.getRadarId(channel))
                     it.message.delete()
                     it.respondPublic {
-                        embed {
-                            success()
-                            title = "Cleared release radar in ${channel.mention}"
-                        }
+                        successEmbed("Cleared release radar in ${channel.mention}")
                     }
                 }
                 addInteractionButton(this, ButtonStyle.Secondary, "Cancel") {

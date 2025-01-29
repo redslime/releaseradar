@@ -5,11 +5,10 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.actionRow
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.PermissionLevel
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.db
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.successEmbed
 import xyz.redslime.releaseradar.util.Timezone
 
 /**
@@ -31,9 +30,7 @@ class SetTimezoneCommand: Command("settimezone", "Sets the timezone of the speci
         interaction.deferPublicResponse().respond {
             db.setRadarTimezone(radarId, timezone)
 
-            embed {
-                success()
-                title = "Updated timezone of ${channel.mention}"
+            successEmbed("Updated timezone of ${channel.mention}") {
                 description = if(timezone == Timezone.ASAP)
                     "New tracks will now be posted as soon as possible"
                 else
@@ -45,9 +42,7 @@ class SetTimezoneCommand: Command("settimezone", "Sets the timezone of the speci
                     it.deferPublicResponse().respond {
                         db.setServerTimezone(it.message.getGuild().id.asLong(), timezone)
 
-                        embed {
-                            success()
-                            title = "Updated timezone for all radars"
+                        successEmbed("Updated timezone for all radars") {
                             description = if(timezone == Timezone.ASAP)
                                 "New tracks will now be posted as soon as possible"
                             else

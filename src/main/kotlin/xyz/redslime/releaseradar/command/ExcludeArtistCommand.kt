@@ -34,21 +34,16 @@ class ExcludeArtistCommand: ArtistCommand("exclude", "Exclude an artist from a r
         val success = db.excludeArtistFromRadar(artist, radarId)
         val removed = db.removeArtistFromRadar(artist, radarId)
 
-        response.respond {
-            if(success) {
-                embed {
-                    success()
+        if(success) {
+            response.respond {
+                successEmbed {
                     description = "Excluded from release radar in ${channel.mention}\n" +
                             "Note: Any releases with ${artist.name} involved will be excluded, even if another artist on the same release is on the radar."
 
                     if(removed)
                         description += "\n\n:warning: This artist was previously on the radar, is removed now."
 
-                    author {
-                        name = artist.name
-                        icon = artist.images?.firstOrNull()?.url
-                        url = artist.externalUrls.spotify
-                    }
+                    artistTitle(artist)
                 }
                 actionRow {
                     addInteractionButton(this, ButtonStyle.Secondary, "Undo") {
@@ -56,16 +51,11 @@ class ExcludeArtistCommand: ArtistCommand("exclude", "Exclude an artist from a r
                         db.includeArtistInRadar(artist, radarId)
                     }
                 }
-            } else {
-                embed {
-                    error()
-                    description = "Failed to add to exclude list, perhaps already on the list?"
-                    author {
-                        name = artist.name
-                        icon = artist.images?.firstOrNull()?.url
-                        url = artist.externalUrls.spotify
-                    }
-                }
+            }
+        } else {
+            respondErrorEmbed(response) {
+                description = "Failed to add to exclude list, perhaps already on the list?"
+                artistTitle(artist)
             }
         }
     }

@@ -7,7 +7,9 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.embed
-import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.colorize
+import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.toSimpleArtist
 import xyz.redslime.releaseradar.util.ChunkedString
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
@@ -30,18 +32,12 @@ class IncludeArtistCommand: ArtistCommand("include", "Include an artist in a rad
         val channel = cmd.channels["channel"]!!
         val rid = db.getRadarId(channel)
 
-        response.respond {
-            if(db.includeArtistInRadar(artist, rid)) {
-                embed {
-                    success()
-                    title = "${artist.name} is no longer excluded from radar in ${channel.mention}"
-                }
-            } else {
-                embed {
-                    error()
-                    title = "There is no artist named ${artist.name} excluded from the radar in ${channel.mention}"
-                    description = "Check who is excluded from the radar using the ``/list excluded`` command!"
-                }
+        if(db.includeArtistInRadar(artist, rid)) {
+            respondSuccessEmbed(response, "${artist.name} is no longer excluded from radar in ${channel.mention}")
+        } else {
+            respondErrorEmbed(response) {
+                title = "There is no artist named ${artist.name} excluded from the radar in ${channel.mention}"
+                description = "Check who is excluded from the radar using the ``/list excluded`` command!"
             }
         }
     }
@@ -73,11 +69,9 @@ class IncludeArtistCommand: ArtistCommand("include", "Include an artist in a rad
         }
 
         description.chunked({ first ->
-            response.respond {
-                embed {
-                    colorize(removed, artists.size)
-                    this.description = "${pluralPrefixed("artist", removed)} no longer excluded from radar in ${channel.mention}:\n\n" + first
-                }
+            respondEmbed(response) {
+                colorize(removed, artists.size)
+                this.description = "${pluralPrefixed("artist", removed)} no longer excluded from radar in ${channel.mention}:\n\n" + first
             }
         }, { _, first, chunk ->
             first.createPublicFollowup {

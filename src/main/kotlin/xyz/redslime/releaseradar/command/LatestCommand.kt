@@ -7,7 +7,6 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.*
 
 /**
@@ -54,9 +53,7 @@ class LatestCommand : ArtistCommand("latest", "Gets the latest release of the sp
 
         if(unresolved.isNotEmpty()) {
             re.createEphemeralFollowup {
-                embed {
-                    error()
-                    title = ":x: Failed to resolve artists:"
+                errorEmbed(":x: Failed to resolve artists:") {
                     description += unresolved.joinToString("\n")
                 }
             }

@@ -82,11 +82,7 @@ class ImportCommand: Command("import", "Import all artists from a playlist into 
 
                     val messageParts = mutableListOf<PublicFollowupMessage>()
                     val rep = description.chunked({ first ->
-                        it.respondPublic {
-                            embed {
-                                this.description = first
-                            }
-                        }
+                        respondEmbed(it.deferPublicResponse(), desc = first)
                     }, { _, first, chunk ->
                         messageParts.add(first.createPublicFollowup {
                             embed {
@@ -127,10 +123,7 @@ class ImportCommand: Command("import", "Import all artists from a playlist into 
         val actualAdded = artists.size - skipped.size
 
         re.respondPublic {
-            embed {
-                success()
-                title = "Added ${pluralPrefixed("artist", actualAdded)} from playlist to ${channel.mention}"
-
+            successEmbed( "Added ${pluralPrefixed("artist", actualAdded)} from playlist to ${channel.mention}") {
                 if(skipped.isNotEmpty())
                     description = "Skipped ${pluralPrefixed("artist", skipped.size)}, already on radar?"
             }

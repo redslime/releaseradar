@@ -2,13 +2,14 @@ package xyz.redslime.releaseradar.command
 
 import com.adamratzman.spotify.models.Artist
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.embed
-import xyz.redslime.releaseradar.*
+import xyz.redslime.releaseradar.PermissionLevel
+import xyz.redslime.releaseradar.cache
 import xyz.redslime.releaseradar.exception.TooManyNamesException
+import xyz.redslime.releaseradar.footer
+import xyz.redslime.releaseradar.spotify
 import xyz.redslime.releaseradar.util.NameCacheProvider
 
 /**
@@ -39,19 +40,19 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
         val response = if(ephemeral) interaction.deferEphemeralResponse() else interaction.deferPublicResponse()
         val cmd = interaction.command
         val artists: Map<String, Artist?>
+        val names = cmd.strings["artist"]!!.split(", ").flatMap { s -> s.split(",") }.filter { s -> s.isNotEmpty() }.toMutableList()
+
+        if(names.size > 1) {
+            respondErrorEmbed(response, "This command only works with one artist, sorry!")
+            return
+        }
 
         try {
-            artists = spotify.findArtists(getNameCacheProvider(interaction), cmd.strings["artist"]!!, artistLimit = artistLimit)
+            artists = spotify.findArtists(getNameCacheProvider(interaction), names, artistLimit = artistLimit)
         } catch (exc: TooManyNamesException) {
-            response.respond {
-                embed {
-                    error()
-                    title = "Too many names in request"
-                    description = "Please limit yourself to ${exc.limit} names per request"
-                    footer {
-                        text = "You can bypass the limit by strictly providing artist urls"
-                    }
-                }
+            respondErrorEmbed(response, "Too many names in request") {
+                description = "Please limit yourself to ${exc.limit} names per request"
+                footer("You can bypass the limit by strictly providing artist urls")
             }
             return
         }
@@ -67,19 +68,12 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
                 if(isCustomHandle()) {
                     handleInput(cmd.strings["artist"]!!, response, interaction)
                 } else {
-                    response.respond {
-                        embed { buildNoSuchArtist(entry.key, this) }
-                    }
+                    respondErrorEmbed(response, ":x: No artist named $name found")
                 }
             } else {
                 handleArtist(entry.value!!, response, interaction)
             }
         } else {
-            if(singleOnly) {
-                respondErrorEmbed(response, "This command only works with one artist, sorry!")
-                return
-            }
-
             val list = ArrayList<Artist>()
             val unresolved = ArrayList<String>()
 

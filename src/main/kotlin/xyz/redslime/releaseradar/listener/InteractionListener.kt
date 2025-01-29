@@ -5,11 +5,7 @@ import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.core.event.interaction.SelectMenuInteractionCreateEvent
 import dev.kord.core.on
-import dev.kord.rest.builder.message.embed
-import xyz.redslime.releaseradar.asLong
-import xyz.redslime.releaseradar.db
-import xyz.redslime.releaseradar.interactionManager
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.Timezone
 import kotlin.coroutines.coroutineContext
 
@@ -52,13 +48,8 @@ class InteractionListener {
                         timezoneCallbacks.removeIf { it.first == userId }
                         db.setUserTimezone(userId, timezone)
 
-                        embed {
-                            success()
-                            title = "Saved your timezone"
-                            description = "Set to: ${timezone.friendly}"
-                            footer {
-                                text = "You can change this anytime by typing /mytimezone"
-                            }
+                        successEmbed("Saved your timezone", "Set to: ${timezone.friendly}") {
+                            footer("You can change this anytime by typing /mytimezone")
                         }
                     }
                     interaction.message.delete()

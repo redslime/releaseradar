@@ -6,7 +6,6 @@ import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.actionRow
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.*
 
 /**
@@ -33,22 +32,15 @@ class EmbedTypeCommand: Command("embedtype", "Whether new releases should be pos
         interaction.deferPublicResponse().respond {
             db.setRadarEmbedType(radarId, type)
 
-            embed {
-                success()
-                title = "Updated embed type of ${channel.mention}"
+            successEmbed("Updated embed type of ${channel.mention}") {
                 description = "The ${type.getFriendly()} embed will now be used for new tracks"
             }
-
             actionRow {
                 addInteractionButton(this, ButtonStyle.Success, "Apply to all radars") {
-                    it.deferPublicResponse().respond {
-                        db.setServerEmbedType(it.message.getGuild().id.asLong(), type)
-
-                        embed {
-                            success()
-                            title = "Updated embed type for all radars"
-                            description = "The ${type.getFriendly()} embed will now be used for new tracks everywhere"
-                        }
+                    db.setServerEmbedType(it.message.getGuild().id.asLong(), type)
+                    respondSuccessEmbed(it.deferPublicResponse()) {
+                        title = "Updated embed type for all radars"
+                        description = "The ${type.getFriendly()} embed will now be used for new tracks everywhere"
                     }
                     it.message.delete()
                 }

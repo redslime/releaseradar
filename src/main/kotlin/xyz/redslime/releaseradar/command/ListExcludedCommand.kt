@@ -9,7 +9,7 @@ import io.ktor.client.request.forms.*
 import io.ktor.utils.io.*
 import xyz.redslime.releaseradar.PermissionLevel
 import xyz.redslime.releaseradar.cache
-import xyz.redslime.releaseradar.success
+import xyz.redslime.releaseradar.successEmbed
 import xyz.redslime.releaseradar.warning
 
 /**
@@ -44,10 +44,7 @@ class ListExcludedCommand: Command("listexcluded", "Lists all excluded artists f
                 else
                     artists.map { it.key }.joinToString("\n")
 
-                embed {
-                    success()
-                    title = "Excluded artists from radar in ${channel.mention} (${artists.size}):"
-
+                successEmbed("Excluded artists from radar in ${channel.mention} (${artists.size}):") {
                     if(joined.length <= 4000)
                         description = joined
                 }

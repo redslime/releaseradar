@@ -3,10 +3,8 @@ package xyz.redslime.releaseradar.command
 import com.adamratzman.spotify.models.Artist
 import com.adamratzman.spotify.models.SimpleArtist
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
-import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
-import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
@@ -43,10 +41,16 @@ class MoveArtistCommand: ArtistCommand("move", "Move an artist from on radar to 
         if(cache.getArtistRecordsInRadarChannel(from).any { it.id == artist.id }) {
             if(db.removeArtistFromRadar(artist, ridFrom)) {
                 if(db.addArtistToRadar(artist, ridTo)) {
-                    respondSuccessEmbed(response, "Moved from ${from.mention} to ${to.mention}", artistTitle = artist)
+                    respondSuccessEmbed(response) {
+                        description = "Moved from ${from.mention} to ${to.mention}"
+                        artistTitle(artist)
+                    }
                 } else {
-                    respondSuccessEmbed(response, "Moved from ${from.mention} to ${to.mention}",
-                        footer = "Artist was already on radar", artistTitle = artist)
+                    respondSuccessEmbed(response) {
+                        description = "Moved from ${from.mention} to ${to.mention}"
+                        footer("Artist was already on radar")
+                        artistTitle(artist)
+                    }
                 }
             } else {
                 respondErrorEmbed(response, desc = "There is no artist named ${artist.name} on the radar in ${from.mention}")
@@ -93,15 +97,13 @@ class MoveArtistCommand: ArtistCommand("move", "Move an artist from on radar to 
 
         val actualMoved = map.values.count { it != Result.NOT_IN_CHANNEL }
 
-        response.respond {
-            embed {
-                colorize(actualMoved, artistList.size)
-                title = "Moved ${pluralPrefixed("artist", actualMoved)} from ${from.mention} to ${to.mention}:"
-                description = ""
+        respondEmbed(response) {
+            colorize(actualMoved, artistList.size)
+            title = "Moved ${pluralPrefixed("artist", actualMoved)} from ${from.mention} to ${to.mention}:"
+            description = ""
 
-                map.forEach { (artist, result) ->
-                    description += "${result.friendly.format(artist.name)}\n"
-                }
+            map.forEach { (artist, result) ->
+                description += "${result.friendly.format(artist.name)}\n"
             }
         }
     }
