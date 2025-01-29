@@ -1,5 +1,6 @@
 package xyz.redslime.releaseradar.command
 
+import com.adamratzman.spotify.models.Artist
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
 import dev.kord.core.behavior.interaction.response.respond
@@ -10,10 +11,7 @@ import dev.kord.rest.builder.interaction.channel
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.embed
 import org.apache.logging.log4j.LogManager
-import xyz.redslime.releaseradar.PermissionLevel
-import xyz.redslime.releaseradar.allowedChannels
-import xyz.redslime.releaseradar.commands
-import xyz.redslime.releaseradar.error
+import xyz.redslime.releaseradar.*
 import xyz.redslime.releaseradar.util.Interactable
 import xyz.redslime.releaseradar.util.Timezone
 
@@ -35,8 +33,8 @@ abstract class Command(val name: String, val description: String, val perm: Perm
         }
     }
 
-    protected fun addChannelInput(builder: ChatInputCreateBuilder, desc: String, req: Boolean = true) {
-        builder.channel("channel", desc) {
+    protected fun addChannelInput(builder: ChatInputCreateBuilder, desc: String, req: Boolean = true, name: String? = null) {
+        builder.channel(name ?: "channel", desc) {
             required = req
             channelTypes = allowedChannels
         }
@@ -59,11 +57,37 @@ abstract class Command(val name: String, val description: String, val perm: Perm
         return interaction.command.strings["timezone"]?.let { Timezone.valueOf(it) }
     }
 
-    protected suspend fun respondErrorEmbed(response: DeferredMessageInteractionResponseBehavior, title: String) {
+    protected suspend fun respondErrorEmbed(response: DeferredMessageInteractionResponseBehavior, title: String? = null, desc: String? = null, artistTitle: Artist? = null) {
         response.respond {
             embed {
                 error()
                 this.title = title
+                this.description = desc
+
+                artistTitle?.let { artist ->
+                    addArtistTitle(artist, this)
+                }
+            }
+        }
+    }
+
+    protected suspend fun respondSuccessEmbed(response: DeferredMessageInteractionResponseBehavior, desc: String,
+                                          title: String? = null, footer: String? = null, artistTitle: Artist? = null) {
+        response.respond {
+            embed {
+                success()
+                this.title = title
+                this.description = desc
+
+                footer?.let { f ->
+                    footer {
+                        text = f
+                    }
+                }
+
+                artistTitle?.let { artist ->
+                    addArtistTitle(artist, this)
+                }
             }
         }
     }
