@@ -88,7 +88,7 @@ suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
 
 suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Boolean = false, color: Color? = null) {
     if(album.albumType == AlbumResultType.Single && album.totalTracks == 1) {
-        album.tracks.first()?.toTrack()?.let { track -> buildTrackEmbed(track, builder, radarPost = radarPost, color = color) }
+        album.tracks.first()?.toTrack()?.let { track -> buildTrackEmbed(track, builder, radarPost = radarPost, color = color, album = album) }
         return
     }
 
@@ -157,12 +157,13 @@ suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder, radarPost: B
     }
 }
 
-suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Boolean = false, color: Color? = null) {
+suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Boolean = false, color: Color? = null, album: Album? = null) {
+    val fullAlbum = album ?: track.album.toAlbum()
     val artists = track.artists.filter { it.name != null }.joinToString(", ") { it.name!! }
     val date = track.album.releaseDate?.getFriendly()
     val year = track.album.releaseDate?.year
     val artworkUrl = track.album.images?.getOrNull(0)?.url ?: ""
-    val label = track.album.toAlbum()?.label
+    val label = fullAlbum?.label
     var type = when(track.album.albumType) {
         AlbumResultType.Single -> "Single"
         else -> track.album.name

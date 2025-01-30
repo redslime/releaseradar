@@ -63,16 +63,16 @@ class PostLaterTask: Task(Duration.ofMillis(getMillisUntilTopOfTheHour()), Durat
                 spotify.getAlbumsBatch(albumIds).forEach { album ->
                     // analyse album art just once here
                     val embedColor = getArtworkColor(album.images?.get(0)?.url ?: "")
+                    val dmEmbed = buildAlbumEmbed(album, radarPost = false, color = embedColor)
+                    val channelEmbed = buildAlbumEmbed(album, radarPost = true, color = embedColor)
 
                     entries.filter { (it.timezone == timezone) && it.albumId == album.id }
                         .forEach { entry ->
                             if (entry.dm) {
-                                val embed = buildAlbumEmbed(album, radarPost = false, color = embedColor)
-                                userDms.getOrPut(entry.channelId) { mutableListOf() }.add(Pair(album, embed))
+                                userDms.getOrPut(entry.channelId) { mutableListOf() }.add(Pair(album, dmEmbed))
                             } else {
                                 client.getChannel(Snowflake(entry.channelId))?.let { channel ->
-                                    val embed = buildAlbumEmbed(album, radarPost = true, color = embedColor)
-                                    postRadarAlbum(album, embed, channel as MessageChannelBehavior, db.getRadarId(channel))
+                                    postRadarAlbum(album, channelEmbed, channel as MessageChannelBehavior, db.getRadarId(channel))
                                 }
                             }
                         }
