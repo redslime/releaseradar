@@ -42,7 +42,7 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
         val artists: Map<String, Artist?>
         val names = cmd.strings["artist"]!!.split(", ").flatMap { s -> s.split(",") }.filter { s -> s.isNotEmpty() }.toMutableList()
 
-        if(names.size > 1) {
+        if(singleOnly && names.size > 1) {
             respondErrorEmbed(response, "This command only works with one artist, sorry!")
             return
         }
@@ -56,6 +56,7 @@ abstract class ArtistCommand(name: String, description: String, perm: Permission
             }
             return
         }
+
         if(artists.isEmpty()) {
             if(isCustomHandle())
                 handleInput(cmd.strings["artist"]!!, response, interaction)
