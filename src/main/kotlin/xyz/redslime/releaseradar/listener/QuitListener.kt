@@ -1,11 +1,13 @@
 package xyz.redslime.releaseradar.listener
 
 import dev.kord.core.Kord
+import dev.kord.core.event.gateway.DisconnectEvent
 import dev.kord.core.event.guild.GuildDeleteEvent
 import dev.kord.core.on
 import xyz.redslime.releaseradar.DiscordClient
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.db
+import xyz.redslime.releaseradar.startedAt
 
 /**
  * @author redslime
@@ -20,6 +22,11 @@ class QuitListener {
             } else {
                 db.purgeServerData(guildId.asLong())
             }
+        }
+
+        client.on<DisconnectEvent> {
+            println("Discord gateway disconnected (${this.javaClass.simpleName})")
+            startedAt = System.currentTimeMillis()
         }
     }
 }
