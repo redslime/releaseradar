@@ -157,6 +157,9 @@ class SpotifyClient {
         val urlList = names.filter { it.matches(artistRegex) }.toMutableList()
         names.removeAll(urlList) // remove from name list so we don't process them again later
 
+        // skip any album urls (coming from /print)
+        names.removeIf { albumRegex.matches(it) || trackRegex.matches(it) }
+
         // with cache we can possibly look up the uid from memory
         if(useCache) {
             names.forEach { name ->
