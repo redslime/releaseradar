@@ -50,6 +50,9 @@ class AddArtistCommand : ArtistCommand("add", "Add an artist to the release rada
                         val re = it.deferEphemeralResponse()
                         spotify.getLatestRelease(artist.id)?.toAlbum()?.let { album ->
                             postRadarAlbum(album, channel.fetchChannel() as MessageChannelBehavior, radarId)
+                        } ?: respondErrorEmbed(re) {
+                            this.description = "No releases found"
+                            artistTitle(artist)
                         }
                         re.delete()
                     }

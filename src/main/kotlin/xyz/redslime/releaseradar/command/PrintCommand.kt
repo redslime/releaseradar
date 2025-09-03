@@ -38,6 +38,9 @@ class PrintCommand: ArtistCommand("print", "Prints the lastest release of the sp
                 ex.printStackTrace()
                 respondErrorEmbed(response, "Something went wrong, please double check permissions etc")
             }
+        } ?: respondErrorEmbed(response) {
+            this.description = "No releases found"
+            artistTitle(artist)
         }
     }
 
