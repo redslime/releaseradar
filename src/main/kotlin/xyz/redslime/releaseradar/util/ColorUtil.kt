@@ -9,12 +9,10 @@ import dev.kord.common.Color
 import java.awt.image.BufferedImage
 import java.net.URL
 import javax.imageio.ImageIO
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 
 val MIN_SATURATION = 0.35f
 val MIN_LIGHTNESS = 0.4f
+val CACHE: CacheMap<String, Color> = CacheMap(300)
 
 data class RGB(val r: Int, val g: Int, val b: Int) {
     fun hsv(): HSV {
@@ -158,5 +156,5 @@ fun getArtworkColor(url: String): Color? {
     if(url.isBlank())
         return null
 
-    return analyzeImageColors(url)
+    return CACHE.get(url) { analyzeImageColors(it) }
 }
