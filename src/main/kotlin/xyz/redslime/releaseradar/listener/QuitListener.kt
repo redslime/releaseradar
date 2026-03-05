@@ -25,7 +25,6 @@ class QuitListener {
         }
 
         client.on<DisconnectEvent> {
-            println("Discord gateway disconnected (${this.javaClass.simpleName})")
             startedAt = System.currentTimeMillis()
         }
     }
