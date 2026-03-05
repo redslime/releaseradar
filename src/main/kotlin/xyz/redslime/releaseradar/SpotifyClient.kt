@@ -5,7 +5,6 @@ import com.adamratzman.spotify.SpotifyException
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
 import com.adamratzman.spotify.models.*
 import com.adamratzman.spotify.spotifyAppApi
-import com.adamratzman.spotify.utils.Market
 import io.ktor.client.network.sockets.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -134,8 +133,8 @@ class SpotifyClient {
                 api.artists.getArtistAlbums(
                     artistId,
                     include = arrayOf(ArtistApi.AlbumInclusionStrategy.Album, ArtistApi.AlbumInclusionStrategy.Single),
-                    market = Market.WS
-                ).getAllItemsNotNull().toMutableList()
+                    market = DEFAULT_MARKET
+                ).filterNotNull().toMutableList()
             }
         } catch(ex: SpotifyException.TimeoutException) {
             logger.error("Timed out trying to get albums for $artistId, trying again", ex)
@@ -235,7 +234,7 @@ class SpotifyClient {
         val uid = playlistUrl.replace(playlistRegex, "$1")
         var artists = api { api ->
             api.playlists.getPlaylistTracks(uid).getAllItemsNotNull()
-                .flatMap { it.track?.asTrack?.artists.orEmpty() }
+                .flatMap { it.item?.asTrack?.artists.orEmpty() }
         }
         artists = artists.distinctBy { it.id }
         return artists
@@ -258,7 +257,7 @@ class SpotifyClient {
 
     suspend fun getAlbumInstance(albumId: String): Album? {
         return api { api ->
-            api.albums.getAlbum(albumId, Market.WS)
+            api.albums.getAlbum(albumId, DEFAULT_MARKET)
         }
     }
 
@@ -276,7 +275,7 @@ class SpotifyClient {
 
     suspend fun toFullAlbum(album: SimpleAlbum): Album? {
         return api { api ->
-            api.albums.getAlbum(album.id, Market.WS)
+            api.albums.getAlbum(album.id, DEFAULT_MARKET)
         }
     }
 }

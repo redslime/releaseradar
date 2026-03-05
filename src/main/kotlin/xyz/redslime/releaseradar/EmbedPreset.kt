@@ -4,7 +4,6 @@ import com.adamratzman.spotify.models.Album
 import com.adamratzman.spotify.models.AlbumResultType
 import com.adamratzman.spotify.models.SimpleTrack
 import com.adamratzman.spotify.models.Track
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.Color
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.channel.createMessage
@@ -16,6 +15,7 @@ import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.embed
 import xyz.redslime.releaseradar.listener.InteractionListener.Companion.timezoneCallbacks
+import xyz.redslime.releaseradar.util.DEFAULT_MARKET
 import xyz.redslime.releaseradar.util.Timezone
 import xyz.redslime.releaseradar.util.getArtworkColor
 import xyz.redslime.releaseradar.util.reminderEmoji
@@ -152,7 +152,7 @@ suspend fun buildAlbumEmbed(album: Album, radarPost: Boolean = false, color: Col
 }
 
 suspend fun buildAlbumEmbed(albumId: String, builder: EmbedBuilder, radarPost: Boolean = false, color: Color? = null) {
-    spotify.api { it.albums.getAlbum(albumId, Market.WS) }?.let { album ->
+    spotify.api { it.albums.getAlbum(albumId, DEFAULT_MARKET) }?.let { album ->
         buildAlbumEmbed(album, builder, radarPost = radarPost, color = color)
     }
 }
@@ -197,7 +197,7 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
 }
 
 suspend fun buildTrackEmbed(singleId: String, builder: EmbedBuilder) {
-    spotify.api { it.tracks.getTrack(singleId, Market.WS) }?.let { track ->
+    spotify.api { it.tracks.getTrack(singleId, DEFAULT_MARKET) }?.let { track ->
         buildTrackEmbed(track, builder)
     }
 }

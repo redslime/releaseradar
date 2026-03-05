@@ -2,7 +2,6 @@ package xyz.redslime.releaseradar.command
 
 import com.adamratzman.spotify.models.AudioFeatures
 import com.adamratzman.spotify.models.Track
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.behavior.interaction.respondEphemeral
 import dev.kord.core.behavior.interaction.response.DeferredMessageInteractionResponseBehavior
@@ -78,7 +77,7 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
         if(url.matches(albumRegex)) {
             val id = url.replace(albumRegex, "$1")
             val album = spotify.api { api ->
-                api.albums.getAlbum(id, Market.WS)
+                api.albums.getAlbum(id, DEFAULT_MARKET)
             }
 
             if(album == null) {
@@ -102,7 +101,7 @@ class AnalysisCommand: Command("analysis", "Display track analysis data") {
         } else if(url.matches(trackRegex)) {
             val id = url.replace(trackRegex, "$1")
             val track = spotify.api { api ->
-                api.tracks.getTrack(id, Market.WS)
+                api.tracks.getTrack(id, DEFAULT_MARKET)
             }
 
             if(track == null) {

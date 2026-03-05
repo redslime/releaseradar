@@ -1,8 +1,8 @@
 package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.models.*
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
+import dev.kord.common.entity.optional.value
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -14,6 +14,7 @@ import kotlinx.css.CssBuilder
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
+import xyz.redslime.releaseradar.util.DEFAULT_MARKET
 import xyz.redslime.releaseradar.util.emojiRegex
 import java.time.Duration
 import java.time.LocalDateTime
@@ -189,7 +190,7 @@ fun Track.getDurationFriendly(): String {
 
 suspend fun SimpleTrack.toTrack(): Track? {
     val id = this.id
-    return spotify.api { it.tracks.getTrack(id, Market.WS) }
+    return spotify.api { it.tracks.getTrack(id, DEFAULT_MARKET) }
 }
 
 /**
