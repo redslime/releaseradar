@@ -28,7 +28,7 @@ val labelRegex = Regex(".*Label: (.*)")
 val artistRegex = Regex(".*artist/([A-z0-9]{22}).*")
 val playlistRegex = Regex(".*playlist/([A-z0-9]{22}).*")
 val shortLinkRegex = Regex(".*spotify.link/.*")
-val DEFAULT_MARKET = Market.AU
+val DEFAULT_MARKET = Market.WS
 
 fun plural(str: String, count: Int): String {
     return str.plural(count)
