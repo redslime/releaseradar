@@ -21,6 +21,7 @@ import java.util.*
  * @version 2023-05-19
  */
 
+private var reminderEmoji: ReactionEmoji? = null
 val emojiRegex = Regex("<(a)?:(.*):([0-9]*)>")
 val albumRegex = Regex(".*album/([A-z0-9]{22}).*")
 val trackRegex = Regex(".*track/([A-z0-9]{22}).*")
@@ -116,8 +117,10 @@ suspend fun addPostLater(line: String, user: User): Boolean {
 
 suspend fun printToDiscord(client: Kord, logger: Logger, str: String) {
     logger.info(str)
-    val channel = client.getChannel(Snowflake(1108804483938525325L)) as TextChannel
-    channel.createMessage(str)
+    config.logChannel?.let { cid ->
+        val channel = client.getChannel(Snowflake(cid)) as TextChannel
+        channel.createMessage(str)
+    }
 }
 
 fun resolveShortenedLink(shortenedLink: String, logger: Logger): String? {
@@ -162,7 +165,7 @@ fun format1(n: Number): String {
     return String.format("%.1f", n)
 }
 
-fun coroutine(block: suspend () -> Any) {
+fun coroutine(block: suspend () -> Any?) {
     CoroutineScope(Dispatchers.Default).launch {
         block.invoke()
     }
@@ -176,4 +179,16 @@ fun silentCancellableCoroutine(block: suspend () -> Unit): Job {
             // ignore it
         }
     }
+}
+
+suspend fun getReminderEmoji(kord: Kord): ReactionEmoji {
+    if(reminderEmoji == null) {
+        reminderEmoji = if(config.saveEmojiGuildId != null && config.saveEmojiId != null) {
+            ReactionEmoji.from(kord.getGuild(Snowflake(config.saveEmojiGuildId!!)).getEmoji(Snowflake(config.saveEmojiId!!)))
+        } else {
+            ReactionEmoji.Unicode("\u23F0")
+        }
+    }
+
+    return reminderEmoji!!
 }

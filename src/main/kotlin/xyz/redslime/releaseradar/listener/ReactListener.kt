@@ -25,7 +25,7 @@ class ReactListener {
             if(message.author?.id != client.getSelf().id)
                 return@on
 
-            if(this.emoji == reminderEmoji) {
+            if(this.emoji == getReminderEmoji(client)) {
                 extractSpotifyLink(message)?.let {
                     val albumId = it.replace(albumRegex, "$1")
                     addPostLater(it, user)
@@ -63,7 +63,7 @@ class ReactListener {
                         emotes[0] -> db.logUserReact(client, user.id.asLong(), message.getGuild().id.asLong(), albumId, message.timestamp, like = false)
                         emotes[1] -> db.logUserReact(client, user.id.asLong(), message.getGuild().id.asLong(), albumId, message.timestamp, dislike = false)
                         emotes[2] -> db.logUserReact(client, user.id.asLong(), message.getGuild().id.asLong(), albumId, message.timestamp, heart = false)
-                        reminderEmoji -> db.logUserReact(client, user.id.asLong(), message.getGuild().id.asLong(), albumId, message.timestamp, clock = false)
+                        getReminderEmoji(this.kord) -> db.logUserReact(client, user.id.asLong(), message.getGuild().id.asLong(), albumId, message.timestamp, clock = false)
                         is ReactionEmoji.Custom -> return@on
                         is ReactionEmoji.Unicode -> return@on
                     }

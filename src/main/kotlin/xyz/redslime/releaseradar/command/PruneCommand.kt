@@ -61,7 +61,7 @@ class PruneCommand: Command("prune", "Remove inactive or unpopular artists from 
                                     score += it.count - 1
                                 if(it.emoji == reacts[2])
                                     score += it.count - 1
-                                if(it.emoji == reminderEmoji)
+                                if(it.emoji == getReminderEmoji(cmd.kord))
                                     score += it.count - 1
                             }
 

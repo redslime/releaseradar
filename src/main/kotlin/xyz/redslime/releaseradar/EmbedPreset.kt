@@ -18,14 +18,14 @@ import xyz.redslime.releaseradar.listener.InteractionListener.Companion.timezone
 import xyz.redslime.releaseradar.util.DEFAULT_MARKET
 import xyz.redslime.releaseradar.util.Timezone
 import xyz.redslime.releaseradar.util.getArtworkColor
-import xyz.redslime.releaseradar.util.reminderEmoji
+import xyz.redslime.releaseradar.util.getReminderEmoji
 
 /**
  * @author redslime
  * @version 2023-05-19
  */
 
-suspend fun postRadarAlbum(album: Album, embed: EmbedBuilder, ch: MessageChannelBehavior, radarId: Int) {
+suspend fun postRadarAlbum(albumLink: String?, embed: EmbedBuilder, ch: MessageChannelBehavior, radarId: Int) {
     val embedType = cache.getEmbedType(radarId)
     val reacts = cache.getRadarEmotes(radarId)
 
@@ -36,13 +36,13 @@ suspend fun postRadarAlbum(album: Album, embed: EmbedBuilder, ch: MessageChannel
             }
             addReactions(msg, reacts)
         }
-        EmbedType.SPOTIFY -> ch.createMessage("${album.getSmartLink()}")
+        EmbedType.SPOTIFY -> albumLink?.let { ch.createMessage(it) }
     }
 }
 
 suspend fun postRadarAlbum(album: Album, ch: MessageChannelBehavior, radarId: Int) {
     val embed = buildAlbumEmbed(album, true)
-    postRadarAlbum(album, embed, ch, radarId)
+    postRadarAlbum(album.getSmartLink(), embed, ch, radarId)
 }
 
 suspend fun addReactions(msg: Message, reacts: List<ReactionEmoji>) {
@@ -64,7 +64,7 @@ suspend fun addReactions(msg: Message, reacts: List<ReactionEmoji>) {
         msg.addReaction(ReactionEmoji.Unicode("\u2764\uFE0F")) // Heart
     }
 
-    msg.addReaction(reminderEmoji) // Alarm clock
+    msg.addReaction(getReminderEmoji(msg.kord)) // Alarm clock
 }
 
 suspend fun postTimezonePrompt(user: User, block: Timezone.() -> Unit) {
@@ -97,7 +97,7 @@ suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Bool
     val year = album.releaseDate.year
     val artworkUrl = album.images?.get(0)?.url ?: ""
     var type = album.albumType.name.qapitalize()
-    val label = album.label
+    val label: String = album.label ?: album.copyrights.asLabelString() ?: ""
 
     if(album.albumType == AlbumResultType.Single && album.totalTracks > 1 && album.tracks.any { it?.name?.contains(album.name) == false }) {
         type = "EP" // this isn't always accurate but works pretty well most of the time
@@ -137,7 +137,7 @@ suspend fun buildAlbumEmbed(album: Album, builder: EmbedBuilder, radarPost: Bool
                 "\n$label\n" +
                 "$date • ${durTotal.getDurationFriendly()}"
         builder.footer {
-            text = "Hit ⏰ for a DM when it's out in your timezone"
+            text = "Hit + for a DM when it's out in your timezone"
         }
     } else {
         val dur = album.tracks.sumOf { it?.durationMs ?: 0 }.getDurationFriendly()
@@ -163,7 +163,7 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
     val date = track.album.releaseDate?.getFriendly()
     val year = track.album.releaseDate?.year
     val artworkUrl = track.album.images?.getOrNull(0)?.url ?: ""
-    val label = fullAlbum?.label
+    val label = fullAlbum?.label ?: fullAlbum?.copyrights?.asLabelString() ?: ""
     var type = when(track.album.albumType) {
         AlbumResultType.Single -> "Single"
         else -> track.album.name
@@ -189,7 +189,7 @@ suspend fun buildTrackEmbed(track: Track, builder: EmbedBuilder, radarPost: Bool
         builder.description = "$label\n" +
                 "$date • ${track.getDurationFriendly()}"
         builder.footer {
-            text = "Hit ⏰ for a DM when it's out in your timezone"
+            text = "Hit + for a DM when it's out in your timezone"
         }
     } else {
         builder.description = "$type • $label • ${track.getDurationFriendly()} • $year"
@@ -219,6 +219,6 @@ suspend fun buildArtistEmbed(artistId: String, builder: EmbedBuilder) {
         }
 
         val genres = if(artist.genres.isNotEmpty()) artist.genres.joinToString(", ", postfix = " • ") else ""
-        builder.description = "$genres${"%,d".format(artist.followers.total)} followers"
+        builder.description = genres
     }
 }

@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.cache
 import xyz.redslime.releaseradar.util.addPostLater
 import xyz.redslime.releaseradar.util.extractSpotifyLink
+import xyz.redslime.releaseradar.util.getReminderEmoji
 import xyz.redslime.releaseradar.util.getStartOfToday
-import xyz.redslime.releaseradar.util.reminderEmoji
 
 /**
  * @author redslime
@@ -45,7 +45,7 @@ class CollectRemindersCommand: AdminCommand("collectreminders", "Looks for remin
                                 .toList()
                                 .forEach { message ->
                                     extractSpotifyLink(message)?.let { url ->
-                                        message.getReactors(reminderEmoji)
+                                        message.getReactors(getReminderEmoji(interaction.kord))
                                             .filter { it != interaction.kord.getSelf() }
                                             .toList().forEach {
                                                 if (addPostLater(url, it))
