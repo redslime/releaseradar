@@ -46,3 +46,6 @@ bin/
 .DS_Store
 /logs/
 /.idea/
+
+### Local test files ###
+/src/test/kotlin/ignored/
