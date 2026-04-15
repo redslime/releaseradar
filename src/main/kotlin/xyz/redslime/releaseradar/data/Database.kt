@@ -5,7 +5,6 @@ import com.adamratzman.spotify.models.SimpleArtist
 import dev.kord.core.Kord
 import dev.kord.core.entity.channel.Channel
 import dev.kord.core.entity.channel.ResolvedChannel
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaLocalDateTime
 import kotlinx.datetime.toLocalDateTime
@@ -31,6 +30,7 @@ import xyz.redslime.releaseradar.task.PostLaterTask
 import xyz.redslime.releaseradar.util.Timezone
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.time.Instant
 
 /**
  * @author redslime

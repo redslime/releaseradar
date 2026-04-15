@@ -1,5 +1,6 @@
 package xyz.redslime.releaseradar.util
 
+import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.entity.Message
@@ -7,7 +8,6 @@ import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.User
 import dev.kord.core.entity.channel.TextChannel
 import kotlinx.coroutines.*
-import kotlinx.datetime.toKotlinInstant
 import org.apache.logging.log4j.Logger
 import xyz.redslime.releaseradar.*
 import java.net.HttpURLConnection
@@ -15,6 +15,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.time.*
 import java.util.*
+import kotlin.time.toKotlinInstant
 
 /**
  * @author redslime
@@ -58,7 +59,7 @@ fun getMillisUntilTopOfTheHour(): Long {
     return date.toInstant().toEpochMilli() - now.toInstant().toEpochMilli()
 }
 
-fun getStartOfToday(): kotlinx.datetime.Instant {
+fun getStartOfToday(): kotlin.time.Instant {
     return LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT).atZone(ZoneId.systemDefault()).toInstant().toKotlinInstant()
 }
 

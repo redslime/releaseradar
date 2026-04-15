@@ -1,17 +1,19 @@
 import org.jooq.meta.jaxb.Logging
 
-val kordVersion = "0.14.0"
+val kordVersion = "0.18.0"
 val spotifyVersion = "4.1.3"
-val log4jVersion = "2.23.1"
+val log4jVersion = "2.25.3"
+val mysqlConnectorVersion = "9.6.0"
 val jooqVersion = "3.19.13"
 val gsonVersion = "2.11.0"
 val emoji4jVersion = "15.1.2"
-val ktorVersion = "2.3.11"
+val ktorVersion = "3.4.1"
 
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "2.3.10"
     id("nu.studer.jooq") version "9.0"
-    id("io.ktor.plugin") version "2.3.1"
+    id("io.ktor.plugin") version "3.4.1"
+    kotlin("plugin.serialization") version "2.3.10"
 }
 
 group = "xyz.redslime"
@@ -30,14 +32,15 @@ dependencies {
     implementation("dev.kord:kord-core:$kordVersion")
     implementation("com.adamratzman:spotify-api-kotlin-core:$spotifyVersion")
     implementation("org.jooq:jooq:$jooqVersion")
-    implementation("com.mysql:mysql-connector-j:8.2.0")
+    implementation("com.mysql:mysql-connector-j:$mysqlConnectorVersion")
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("com.sigpwned:emoji4j-core:$emoji4jVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
     implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.568")
-    jooqGenerator("com.mysql:mysql-connector-j:8.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    jooqGenerator("com.mysql:mysql-connector-j:$mysqlConnectorVersion")
 }
 
 tasks.test {
