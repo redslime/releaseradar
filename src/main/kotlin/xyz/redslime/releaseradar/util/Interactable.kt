@@ -47,7 +47,7 @@ interface Interactable {
     }
 
     fun addMasterSpotifyLinkButton(builder: ActionRowBuilder, block: suspend CoroutineContext.(Boolean) -> Unit) {
-        builder.linkButton(webServer.getAuthUrl(true) {
+        builder.linkButton(webServer.getAuthUrl {
             if (this != null) {
                 db.updateSpotifyMasterRefreshToken(this)
                 block.invoke(coroutineContext, true)
@@ -61,7 +61,7 @@ interface Interactable {
     }
 
     fun addSpotifyLinkButton(builder: ActionRowBuilder, user: User, public: Boolean, block: suspend CoroutineContext.(Boolean) -> Unit) {
-        builder.linkButton(webServer.getAuthUrl(public) {
+        builder.linkButton(webServer.getAuthUrl {
             if (this != null) {
                 db.updateUserRefreshToken(user.id.asLong(), this)
                 block.invoke(coroutineContext, true)

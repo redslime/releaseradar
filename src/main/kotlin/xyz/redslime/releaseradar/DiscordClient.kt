@@ -73,7 +73,6 @@ class DiscordClient {
         ForceRemindersCommand().register(client)
         TopCommand().register(client)
         AnalysisCommand().register(client)
-        RebuildCommand().register(client)
         PruneCommand().register(client)
         DuplicatesCommand().register(client)
         ExcludeArtistCommand().register(client)

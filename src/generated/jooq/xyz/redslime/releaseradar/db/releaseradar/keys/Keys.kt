@@ -15,6 +15,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
+import xyz.redslime.releaseradar.db.releaseradar.tables.PostLaterCache
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
@@ -24,6 +25,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRadarRecor
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ArtistRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.ConfigChannelRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.InfoRecord
+import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterCacheRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.PostLaterRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.RadarChannelRecord
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.TokenRecord
@@ -48,6 +50,8 @@ val KEY_INFO_INFO_KEY_UINDEX: UniqueKey<InfoRecord> = Internal.createUniqueKey(I
 val KEY_INFO_PRIMARY: UniqueKey<InfoRecord> = Internal.createUniqueKey(Info.INFO, DSL.name("KEY_info_PRIMARY"), arrayOf(Info.INFO.KEY), true)
 val KEY_POST_LATER_POST_LATER_ID_UINDEX: UniqueKey<PostLaterRecord> = Internal.createUniqueKey(PostLater.POST_LATER, DSL.name("KEY_post_later_post_later_id_uindex"), arrayOf(PostLater.POST_LATER.ID), true)
 val KEY_POST_LATER_PRIMARY: UniqueKey<PostLaterRecord> = Internal.createUniqueKey(PostLater.POST_LATER, DSL.name("KEY_post_later_PRIMARY"), arrayOf(PostLater.POST_LATER.ID), true)
+val KEY_POST_LATER_CACHE_POST_LATER_CACHE_PK_2: UniqueKey<PostLaterCacheRecord> = Internal.createUniqueKey(PostLaterCache.POST_LATER_CACHE, DSL.name("KEY_post_later_cache_post_later_cache_pk_2"), arrayOf(PostLaterCache.POST_LATER_CACHE.ALBUM_ID), true)
+val KEY_POST_LATER_CACHE_PRIMARY: UniqueKey<PostLaterCacheRecord> = Internal.createUniqueKey(PostLaterCache.POST_LATER_CACHE, DSL.name("KEY_post_later_cache_PRIMARY"), arrayOf(PostLaterCache.POST_LATER_CACHE.ALBUM_ID), true)
 val KEY_RADAR_CHANNEL_PRIMARY: UniqueKey<RadarChannelRecord> = Internal.createUniqueKey(RadarChannel.RADAR_CHANNEL, DSL.name("KEY_radar_channel_PRIMARY"), arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)
 val KEY_RADAR_CHANNEL_RADAR_CHANNEL_ID_UINDEX: UniqueKey<RadarChannelRecord> = Internal.createUniqueKey(RadarChannel.RADAR_CHANNEL, DSL.name("KEY_radar_channel_radar_channel_id_uindex"), arrayOf(RadarChannel.RADAR_CHANNEL.ID), true)
 val KEY_TOKEN_PRIMARY: UniqueKey<TokenRecord> = Internal.createUniqueKey(Token.TOKEN, DSL.name("KEY_token_PRIMARY"), arrayOf(Token.TOKEN.ID), true)

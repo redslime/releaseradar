@@ -1,9 +1,9 @@
 package xyz.redslime.releaseradar.command
 
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.optional.value
 import dev.kord.core.behavior.channel.MessageChannelBehavior
 import dev.kord.core.behavior.interaction.response.respond
+import dev.kord.core.entity.Message
 import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.toList
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.cache
-import xyz.redslime.releaseradar.spotify
 import xyz.redslime.releaseradar.thumbnail
-import xyz.redslime.releaseradar.util.*
+import xyz.redslime.releaseradar.util.extractEmbedArtistTitle
+import xyz.redslime.releaseradar.util.getArtworkColor
+import xyz.redslime.releaseradar.util.getReminderEmoji
 import java.time.Duration
 import kotlin.time.toKotlinDuration
 
@@ -47,9 +48,6 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         builder.string("artist", "Filter by artist") {
             required = false
         }
-        builder.string("label", "Filter by label") {
-            required = false
-        }
     }
 
     override suspend fun handleInteraction(interaction: ChatInputCommandInteraction) {
@@ -59,7 +57,6 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
         val silent = interaction.command.booleans["silent"] ?: false
         val days = interaction.command.integers["days"] ?: 30
         val artist = interaction.command.strings["artist"]
-        val label = interaction.command.strings["label"]
         val radarId = cache.getRadarId(channel.id.asLong())
         val response = if(silent) {
             interaction.deferEphemeralResponse()
@@ -71,7 +68,7 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
             return
 
         val reacts = cache.getRadarEmotes(radarId!!)
-        val tracks = mutableMapOf<String, Score>()
+        val tracks = mutableListOf<EmbedAlbum>()
         val ch = channel.fetchChannel() as MessageChannelBehavior
 
         channel.data.lastMessageId.value?.let { lastMessage ->
@@ -81,41 +78,35 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
                 .takeWhile { it.timestamp > instant }
                 .filter { it.author == interaction.kord.getSelf() }
                 .filter { artist == null || extractEmbedArtistTitle(it)?.lowercase()?.contains(artist.lowercase()) == true }
-                .filter { label == null || extractEmbedLabel(it)?.trim().equals(label.trim(), ignoreCase = true) }
                 .toList()
                 .forEach { message ->
-                    extractSpotifyLink(message)?.let { url ->
-                        val score = Score(reacts, 0, 0, 0, 0)
-                        message.reactions.forEach {
-                            if(it.emoji == reacts[0])
-                                score.likes += it.count - 1
-                            if(it.emoji == reacts[1])
-                                score.dislikes += it.count - 1
-                            if(it.emoji == reacts[2])
-                                score.hearts += it.count - 1
-                            if(it.emoji == reminderEmoji)
-                                score.reminders += it.count - 1
-                        }
+                    val score = Score(reacts, 0, 0, 0, 0)
 
-                        tracks[url] = score
+                    message.reactions.forEach {
+                        if(it.emoji == reacts[0])
+                            score.likes += it.count - 1
+                        if(it.emoji == reacts[1])
+                            score.dislikes += it.count - 1
+                        if(it.emoji == reacts[2])
+                            score.hearts += it.count - 1
+                        if(it.emoji == getReminderEmoji(interaction.kord))
+                            score.reminders += it.count - 1
                     }
+
+                    extractEmbedInfo(message, score)?.let { tracks.add(it) }
                 }
         }
 
         val sorted = if(!invert) {
-            tracks.toList()
-                // don't filter positive scores for artists and labels
-                .filter { (_, score) -> artist != null || label != null || score.getScore() >= 1 }
-                .sortedByDescending { (_, score) -> score.getScore() }
+            tracks
+                // don't filter positive scores for artists
+                .filter { artist != null || it.score.getScore() >= 1 }
+                .sortedByDescending { it.score.getScore() }
                 .take(20)
-                .toMap()
-                .mapKeys { it.key.replace(albumRegex, "$1") }
         } else {
-            tracks.toList()
-                .sortedBy { (_, score) -> score.getScore() }
+            tracks
+                .sortedBy { it.score.getScore() }
                 .take(20)
-                .toMap()
-                .mapKeys { it.key.replace(albumRegex, "$1") }
         }
 
         if(sorted.isEmpty()) {
@@ -127,42 +118,47 @@ class TopCommand: Command("top", "Lists the top tracks in the specified channel 
 
         val op = if(invert) "Lowest" else "Top"
         val artistf = if(artist != null) " $artist" else ""
-        val labl = if(label != null) " $label" else ""
-        val data = spotify.api { api ->
-            api.albums.getAlbums(*sorted.keys.toTypedArray(), market = Market.WS)
-        }
-        val final = sorted.mapKeys { entry ->
-            data.find { it?.id == entry.key }
-        }
 
-        if(final.isEmpty()) {
-            respondEmbed(response, "$op$artistf tracks$labl of ${channel.mention} (last $days days)") {
+        if(tracks.isEmpty()) {
+            respondEmbed(response, "$op$artistf tracks of ${channel.mention} (last $days days)") {
                 description = "None... Start reacting so tracks show up here!"
             }
             return
         }
 
-        val artworkUrl = final.keys.firstOrNull()?.images?.firstOrNull()?.url.toString()
+        val artworkUrl = tracks.firstOrNull()?.artworkUrl.toString()
 
         response.respond {
             embed {
-                title = "$op ${final.size}$artistf$labl tracks of ${channel.mention} (last $days days)"
+                title = "$op ${tracks.size}$artistf tracks of ${channel.mention} (last $days days)"
                 description = ""
                 thumbnail(artworkUrl)
                 color = getArtworkColor(artworkUrl)
 
-                final.filter { it.key != null }.onEachIndexed { i, (album, score) ->
-                    val artists = album?.artists?.filter { it.name != null }?.joinToString(" & ") { it.name!! }
-                    val name = album?.name
-                    description += "\n$i. [$artists - $name](${album?.externalUrls?.spotify}) ${score.getFriendly()}"
+                tracks.onEachIndexed { i, album ->
+                    description += "\n$i. [${album.artists} - ${album.title}](${album.url}) ${album.score.getFriendly()}"
 
                     if(showScore) {
-                        description += " (**${String.format("%.1f", score.getScore())}**, \u23F0 ${score.reminders})"
+                        description += " (**${String.format("%.1f", album.score.getScore())}**, \u23F0 ${album.score.reminders})"
                     }
                 }
             }
         }
     }
+
+    private fun extractEmbedInfo(msg: Message, score: Score): EmbedAlbum? {
+        return msg.data.embeds.firstOrNull()?.let { embed ->
+            EmbedAlbum(
+                artists = embed.author.value?.name?.value ?: "",
+                title = embed.title.value ?: "",
+                artworkUrl = embed.thumbnail.value?.url?.value ?: "",
+                url = embed.url.value ?: "",
+                score = score
+            )
+        }
+    }
+
+    data class EmbedAlbum(val artists: String, val title: String, val artworkUrl: String, val url: String, val score: Score)
 
     data class Score(val reacts: List<ReactionEmoji>, var likes: Int, var dislikes: Int, var hearts: Int, var reminders: Int) {
         fun getScore(): Double {

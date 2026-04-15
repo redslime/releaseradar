@@ -44,18 +44,16 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
         }
 
         val desc = ChunkedString()
-        val artists = spotify.api { api ->
-            api.artists.getArtists(*map.keys.toTypedArray()).filterNotNull().associateBy { it.id }
-        }
+        val artistRecs = db.getArtists(map.keys.toList())
 
         map.forEach { (artistId, radarIds) ->
-            val artist = artists[artistId]
+            val artist = artistRecs.firstOrNull { it.id == artistId }
             val chs = radarIds.mapNotNull { cache.getChannelId(it) }
                 .mapNotNull { interaction.kord.getChannel(Snowflake(it)) }
                 .map { it as MessageChannelBehavior }
                 .map { it.mention }
 
-            desc.add("${artist?.name}: ${chs.joinToString(" ")}")
+            desc.add("${artist?.name ?: artistId}: ${chs.joinToString(" ")}")
         }
 
         val messageParts = mutableListOf<PublicFollowupMessage>()
@@ -83,9 +81,9 @@ class DuplicatesCommand: Command("duplicates", "Find duplicated artists on radar
                 actionRow {
                     addInteractionButton(this, ButtonStyle.Secondary, "Remove from #${channel.name}") {
                         val repp = it.deferPublicResponse()
-                        val list = artists.values.map { a -> a.toSimpleArtist() }
+                        val list = artistRecs.mapNotNull { a -> a.id }
 
-                        db.removeArtistsFromRadar(list, channel)
+                        db.removeArtistIdsFromRadar(list, channel)
                         it.message.delete()
                         respondSuccessEmbed(repp, "Removed ${pluralPrefixed("duplicate", map.size)} from ${channel.mention}")
                     }

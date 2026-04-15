@@ -10,6 +10,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
+import xyz.redslime.releaseradar.db.releaseradar.tables.PostLaterCache
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
@@ -46,6 +47,11 @@ val INFO: Info = Info.INFO
  * The table <code>releaseradar.post_later</code>.
  */
 val POST_LATER: PostLater = PostLater.POST_LATER
+
+/**
+ * The table <code>releaseradar.post_later_cache</code>.
+ */
+val POST_LATER_CACHE: PostLaterCache = PostLaterCache.POST_LATER_CACHE
 
 /**
  * The table <code>releaseradar.radar_channel</code>.

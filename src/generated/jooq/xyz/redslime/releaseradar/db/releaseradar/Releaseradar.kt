@@ -17,6 +17,7 @@ import xyz.redslime.releaseradar.db.releaseradar.tables.ArtistRadarExclude
 import xyz.redslime.releaseradar.db.releaseradar.tables.ConfigChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Info
 import xyz.redslime.releaseradar.db.releaseradar.tables.PostLater
+import xyz.redslime.releaseradar.db.releaseradar.tables.PostLaterCache
 import xyz.redslime.releaseradar.db.releaseradar.tables.RadarChannel
 import xyz.redslime.releaseradar.db.releaseradar.tables.Token
 import xyz.redslime.releaseradar.db.releaseradar.tables.User
@@ -67,6 +68,11 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
     val POST_LATER: PostLater get() = PostLater.POST_LATER
 
     /**
+     * The table <code>releaseradar.post_later_cache</code>.
+     */
+    val POST_LATER_CACHE: PostLaterCache get() = PostLaterCache.POST_LATER_CACHE
+
+    /**
      * The table <code>releaseradar.radar_channel</code>.
      */
     val RADAR_CHANNEL: RadarChannel get() = RadarChannel.RADAR_CHANNEL
@@ -95,6 +101,7 @@ open class Releaseradar : SchemaImpl("releaseradar", DefaultCatalog.DEFAULT_CATA
         ConfigChannel.CONFIG_CHANNEL,
         Info.INFO,
         PostLater.POST_LATER,
+        PostLaterCache.POST_LATER_CACHE,
         RadarChannel.RADAR_CHANNEL,
         Token.TOKEN,
         User.USER,

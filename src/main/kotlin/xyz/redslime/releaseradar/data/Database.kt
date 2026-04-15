@@ -715,4 +715,12 @@ class Database(private val cache: Cache, private val host: String, private val u
                 .execute()
         }
     }
+
+    fun getArtists(ids: List<String>): List<ArtistRecord> {
+        return connect().use { con ->
+            con.selectFrom(ARTIST)
+                .where(ARTIST.ID.`in`(ids))
+                .fetch()
+        }
+    }
 }

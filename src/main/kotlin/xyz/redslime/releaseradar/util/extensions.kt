@@ -7,6 +7,7 @@ import dev.kord.core.entity.ReactionEmoji
 import dev.kord.core.entity.channel.Channel
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.MessageBuilder
+import dev.kord.rest.json.request.EmbedRequest
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -204,6 +205,29 @@ fun Int.getDurationFriendly(): String {
     return "%01d:%02d".format(dur.toMinutesPart(), dur.toSecondsPart())
 }
 
+fun EmbedRequest.toEmbedBuilder(): EmbedBuilder {
+    val builder = EmbedBuilder()
+    builder.title = this.title.value
+    builder.description = this.description.value
+    builder.url = this.url.value
+    builder.timestamp = this.timestamp.value
+    builder.color = this.color.value
+    builder.image = this.image.value?.url
+    builder.footer = this.footer.value?.let { f -> EmbedBuilder.Footer().apply { this.text = f.text; this.icon = f.iconUrl } }
+    builder.thumbnail = this.thumbnail.value?.let { t -> EmbedBuilder.Thumbnail().apply { this.url = t.url } }
+    builder.author = this.author.value?.let { a -> EmbedBuilder.Author().apply { this.name = a.name.value; this.icon = a.iconUrl.value } }
+
+    this.fields.value?.forEach { field ->
+        builder.field {
+            this.value = field.value
+            this.name = field.name
+            this.inline = field.inline.value
+        }
+    }
+
+    return builder
+}
+
 fun MessageBuilder.addEmbed(eb: EmbedBuilder) {
     embeds?.add(eb) ?: run { embeds = mutableListOf(eb) }
 }
@@ -226,4 +250,9 @@ fun MessageBuilder.successEmbed(title: String? = null, desc: String? = null,
     embed.description = desc
     block.invoke(embed)
     addEmbed(embed)
+}
+
+fun List<SpotifyCopyright>.asLabelString(): String? {
+    return this.find { it.type === CopyrightType.SoundPerformanceCopyright }?.text?.drop(5)
+        ?: return this.firstOrNull()?.text?.drop(5)
 }

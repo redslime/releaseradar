@@ -9,6 +9,7 @@ import dev.kord.core.entity.User
 import dev.kord.core.entity.channel.TextChannel
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.Logger
+import org.jooq.exception.IntegrityConstraintViolationException
 import xyz.redslime.releaseradar.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -93,24 +94,36 @@ fun extractEmbedArtistTitle(msg: Message): String? {
     return msg.data.embeds.firstOrNull()?.title?.value?.split("\n")?.get(0)
 }
 
-fun extractEmbedLabel(msg: Message): String? {
-    msg.data.embeds.firstOrNull()?.description?.value?.lines()?.forEach { line ->
-        if(line.matches(labelRegex)) {
-            return line.replace(labelRegex, "$1")
-        }
-    }
-
-    return null
-}
-
 suspend fun addPostLater(line: String, user: User): Boolean {
     if (line.matches(albumRegex)) {
         val albumId = line.replace(albumRegex, "$1")
-        return DiscordClient.postLaterTask.add(albumId, user)
+
+        try {
+            return DiscordClient.postLaterTask.add(albumId, user)
+        } catch (_: IntegrityConstraintViolationException) {
+            spotify.api { it.albums.getAlbum(albumId, DEFAULT_MARKET) }?.let { album ->
+                db.connect().use { con ->
+                    PostLaterCacheContainer.from(album).push(con)
+                }
+            }
+
+            return DiscordClient.postLaterTask.add(albumId, user)
+        }
     } else if (line.matches(trackRegex)) {
         val trackId = line.replace(trackRegex, "$1")
-        return spotify.getAlbumFromTrack(trackId)?.toAlbum()
-            ?.let { DiscordClient.postLaterTask.add(it.id, user) } ?: false
+        val album = spotify.getAlbumFromTrack(trackId)
+
+        try {
+            return album?.let { DiscordClient.postLaterTask.add(it.id, user) } ?: false
+        } catch (_: IntegrityConstraintViolationException) {
+            album?.toAlbum()?.let {
+                db.connect().use { con ->
+                    PostLaterCacheContainer.from(it).push(con)
+                }
+            }
+
+            return album?.let { DiscordClient.postLaterTask.add(it.id, user) } ?: false
+        }
     }
 
     return false

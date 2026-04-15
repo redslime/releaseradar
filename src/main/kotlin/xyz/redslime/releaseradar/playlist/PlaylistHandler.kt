@@ -2,21 +2,22 @@ package xyz.redslime.releaseradar.playlist
 
 import com.adamratzman.spotify.SpotifyClientApi
 import com.adamratzman.spotify.SpotifyUserAuthorization
-import com.adamratzman.spotify.models.Album
 import com.adamratzman.spotify.models.Playlist
 import com.adamratzman.spotify.models.toPlayableUri
 import com.adamratzman.spotify.refreshSpotifyClientToken
 import com.adamratzman.spotify.spotifyClientApi
-import com.adamratzman.spotify.utils.Market
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.User
 import dev.kord.rest.builder.message.actionRow
+import org.apache.logging.log4j.LogManager
 import xyz.redslime.releaseradar.asLong
 import xyz.redslime.releaseradar.config
 import xyz.redslime.releaseradar.db
 import xyz.redslime.releaseradar.db.releaseradar.tables.records.UserRecord
+import xyz.redslime.releaseradar.util.DEFAULT_MARKET
 import xyz.redslime.releaseradar.util.Interactable
+import xyz.redslime.releaseradar.util.PostLaterCacheContainer
 import xyz.redslime.releaseradar.util.pluralPrefixed
 
 /**
@@ -35,9 +36,7 @@ class PlaylistHandler(val duration: PlaylistDuration, val public: Boolean, val a
         val playlistPair = getPlaylist(api, playlistData, userId)
         val playlist = playlistPair.first
         val newPlaylist = playlistPair.second
-        val playables = albums.flatMap { it.tracks.toList() }.filterNotNull()
-            .filter { !skipExtended || !it.name.lowercase().contains("extended") }
-            .map { it.uri.uri.toPlayableUri() }.toTypedArray()
+        val playables = albums.flatMap { it.getTrackIds(skipExtended) }.map { it.toPlayableUri() }.toTypedArray()
 
         api.playlists.addPlayablesToClientPlaylist(playlist.id, *playables)
         playlist.externalUrls.spotify?.let { user.getDmChannelOrNull()?.createMessage {

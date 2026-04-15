@@ -38,13 +38,13 @@ class WebServer {
         embeddedServer(Netty, host = "0.0.0.0", port = config.serverPort, module = Application::module).start(wait = true)
     }
 
-    fun getAuthUrl(public: Boolean, consumer: suspend String?.() -> Unit): String {
+    fun getAuthUrl(vararg scopes: SpotifyScope = arrayOf(SpotifyScope.PlaylistModifyPublic, SpotifyScope.PlaylistReadCollaborative, SpotifyScope.PlaylistReadPrivate, SpotifyScope.PlaylistModifyPrivate),
+                   consumer: suspend String?.() -> Unit): String {
         val state = UUID.randomUUID().toString()
         authConsumers[state] = consumer
 
         return getSpotifyAuthorizationUrl(
-//            scopes = arrayOf((if(public) SpotifyScope.PlaylistModifyPublic else SpotifyScope.PlaylistModifyPrivate)),
-            scopes = arrayOf(SpotifyScope.PlaylistModifyPublic, SpotifyScope.PlaylistReadCollaborative, SpotifyScope.PlaylistReadPrivate, SpotifyScope.PlaylistModifyPrivate), // spotify api being silly: https://community.spotify.com/t5/Spotify-for-Developers/Web-API-Adding-tracks-to-a-public-playlist-requires-playlist/td-p/5913347
+            scopes = scopes,
             clientId = config.spotifyClientId,
             redirectUri = config.redirectUrl,
             state = state)

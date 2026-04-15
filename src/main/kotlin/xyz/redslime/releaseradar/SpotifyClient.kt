@@ -2,6 +2,7 @@ package xyz.redslime.releaseradar
 
 import com.adamratzman.spotify.SpotifyAppApi
 import com.adamratzman.spotify.SpotifyException
+import com.adamratzman.spotify.annotations.SpotifyExtendedQuota
 import com.adamratzman.spotify.endpoints.pub.ArtistApi
 import com.adamratzman.spotify.models.*
 import com.adamratzman.spotify.spotifyAppApi
@@ -181,11 +182,14 @@ class SpotifyClient {
 
         names.removeAll(removeNamesLater)
 
+        if(names.size > artistLimit) // only look at the limit down here cuz everything above can be batched
+            throw TooManyNamesException(artistLimit)
+
         // fetch artists by uid list
         if(urlList.isNotEmpty()) {
             val uidList = urlList.map { it.replace(artistRegex, "$1") }
             val uidArtists = api { api ->
-                return@api api.artists.getArtists(*uidList.toTypedArray())
+                return@api uidList.map { api.artists.getArtist(it) }
             }
 
             uidArtists.forEachIndexed { index, artist ->
@@ -193,9 +197,6 @@ class SpotifyClient {
                 resultMap[originalInput] = artist
             }
         }
-
-        if(names.size > artistLimit) // only look at the limit down here cuz everything above can be batched
-            throw TooManyNamesException(artistLimit)
 
         // fetch (remaining) artists by name
         names.forEach {
@@ -238,15 +239,6 @@ class SpotifyClient {
         }
         artists = artists.distinctBy { it.id }
         return artists
-    }
-
-    suspend fun getAlbumsBatch(albumIds: List<String>): List<Album> {
-        if(albumIds.isEmpty())
-            return emptyList()
-
-        return api { api ->
-            api.albums.getAlbums(*albumIds.toTypedArray()).filterNotNull()
-        }
     }
 
     suspend fun getAlbumFromTrack(trackId: String): SimpleAlbum? {
